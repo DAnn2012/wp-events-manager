@@ -444,7 +444,7 @@ class WPEMS_Custom_Post_Types {
 			case 'status':
 				$return   = array();
 				$return[] = sprintf( '%s', wpems_booking_status( $booking_id ) );
-				$return[] = $booking->payment_id ? '<p>' . sprintf( __( '(via %s)', 'wp-events-manager' ), wpems_get_payment_title( $booking->payment_id ) ), 'wp-events-manager' ) . '</p>' : '';
+				$return[] = $booking->payment_id ? '<p>' . sprintf( __( '(via %s)', 'wp-events-manager' ), wpems_get_payment_title( $booking->payment_id ) ) . '</p>' : '';
 				$return   = implode( '', $return );
 				echo $return;
 				break;
@@ -615,5 +615,6 @@ class WPEMS_Custom_Post_Types {
 }
 
 new WPEMS_Custom_Post_Types();
+
 
 
