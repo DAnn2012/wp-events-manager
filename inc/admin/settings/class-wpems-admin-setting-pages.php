@@ -16,12 +16,14 @@ class WPEMS_Admin_Setting_Pages extends WPEMS_Abstract_Setting {
 
 	/**
 	 * ID
+	 *
 	 * @var type mixed
 	 */
 	public $id = null;
 
 	/**
 	 * Title
+	 *
 	 * @var type string
 	 */
 	public $label = null;
@@ -40,6 +42,7 @@ class WPEMS_Admin_Setting_Pages extends WPEMS_Abstract_Setting {
 
 	/**
 	 * Get options setting page
+	 *
 	 * @return type array
 	 */
 	public function get_settings() {
@@ -89,7 +92,6 @@ class WPEMS_Admin_Setting_Pages extends WPEMS_Abstract_Setting {
 			)
 		);
 	}
-
 }
 
 return new WPEMS_Admin_Setting_Pages();

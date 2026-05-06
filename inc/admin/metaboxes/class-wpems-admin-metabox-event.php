@@ -23,15 +23,15 @@ class WPEMS_Admin_Metabox_Event {
 			if ( strpos( $name, 'tp_event_' ) !== 0 ) {
 				continue;
 			}
-			update_post_meta( $post_id, $name, $value );
+			update_post_meta( $post_id, $name, self::sanitize_meta_value( $name, $value ) );
 		}
 		// Start
-		$start  = ! empty( $_POST['tp_event_date_start'] ) ? sanitize_text_field( $_POST['tp_event_date_start'] ) : '';
-		$start .= $start && ! empty( $_POST['tp_event_time_start'] ) ? ' ' . sanitize_text_field( $_POST['tp_event_time_start'] ) : '';
+		$start  = ! empty( $posted['tp_event_date_start'] ) ? sanitize_text_field( $posted['tp_event_date_start'] ) : '';
+		$start .= $start && ! empty( $posted['tp_event_time_start'] ) ? ' ' . sanitize_text_field( $posted['tp_event_time_start'] ) : '';
 
 		// End
-		$end  = ! empty( $_POST['tp_event_date_end'] ) ? sanitize_text_field( $_POST['tp_event_date_end'] ) : '';
-		$end .= $end && ! empty( $_POST['tp_event_time_end'] ) ? ' ' . sanitize_text_field( $_POST['tp_event_time_end'] ) : '';
+		$end  = ! empty( $posted['tp_event_date_end'] ) ? sanitize_text_field( $posted['tp_event_date_end'] ) : '';
+		$end .= $end && ! empty( $posted['tp_event_time_end'] ) ? ' ' . sanitize_text_field( $posted['tp_event_time_end'] ) : '';
 
 		$event_start = strtotime( $start );
 		$event_end   = strtotime( $end );
@@ -40,7 +40,7 @@ class WPEMS_Admin_Metabox_Event {
 		}
 		if ( ( $start && ! $end ) || ( strtotime( $start ) > strtotime( $end ) ) ) {
 			WPEMS_Admin_Metaboxes::add_error( __( 'Please make sure event time is validate! The end time must be in future of the start time!', 'wp-events-manager' ) );
-			//wp_update_post( array( 'ID' => $post_id, 'post_status' => 'publish' ) );
+			// wp_update_post( array( 'ID' => $post_id, 'post_status' => 'publish' ) );
 		}
 
 		$time        = strtotime( current_time( 'Y-m-d H:i' ) );
@@ -75,6 +75,39 @@ class WPEMS_Admin_Metabox_Event {
 		}
 
 		update_post_meta( $post_id, 'tp_event_status', $status );
+	}
+
+	/**
+	 * Sanitize event meta before storing it.
+	 *
+	 * @param string $name  Meta key.
+	 * @param mixed  $value Unslashed posted value.
+	 *
+	 * @return mixed
+	 */
+	private static function sanitize_meta_value( $name, $value ) {
+		if ( is_array( $value ) ) {
+			return map_deep( $value, 'sanitize_text_field' );
+		}
+
+		if ( 'tp_event_iframe' === $name ) {
+			$allowed_html           = wp_kses_allowed_html( 'post' );
+			$allowed_html['iframe'] = array(
+				'src'             => true,
+				'width'           => true,
+				'height'          => true,
+				'style'           => true,
+				'loading'         => true,
+				'referrerpolicy'  => true,
+				'allow'           => true,
+				'allowfullscreen' => true,
+				'frameborder'     => true,
+			);
+
+			return wp_kses( $value, $allowed_html );
+		}
+
+		return sanitize_text_field( $value );
 	}
 
 	public static function render() {

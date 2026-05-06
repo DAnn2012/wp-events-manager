@@ -2,6 +2,9 @@
 	"name": "wp-events-manager",
 	"version": "1.0.1",
 	"description": "",
+	"engines": {
+		"node": ">=24.0.0 <25.0.0"
+	},
 	"dependencies": {
 		"toastify-js": "1.12.0",
 		"tom-select": "2.4.3"
@@ -28,6 +31,7 @@
 		"start": "wp-scripts start NODE_ENV=develop",
 		"build": "wp-scripts build NODE_ENV=production",
 		"format": "wp-scripts format assets/src/**/*.js",
+		"lint:js": "eslint assets/src/js/**/*.js",
 		"makepot": "wp i18n make-pot . languages/wp-events-manager.pot --skip-audit --exclude=\"test,release,build,tools,dist,node_modules,vendor,assets,languages\"",
 		"build-makepot-zip": "composer update --no-dev && npm run build && npm run makepot && gulp",
 		"release": "node build-release.js"

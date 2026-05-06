@@ -45,6 +45,7 @@ class WPEMS_Admin_Settings {
 
 	/**
 	 * Display messages
+	 *
 	 * @since 2.0
 	 */
 	public static function show_messages() {
@@ -55,31 +56,44 @@ class WPEMS_Admin_Settings {
 
 	/**
 	 * Save event setting
+	 *
 	 * @since 2.0
 	 */
 	public static function save() {
-		if ( empty( $_POST['tp-event-settings-nonce'] ) || ! wp_verify_nonce( $_POST['tp-event-settings-nonce'], 'tp-event-settings' ) ) {
+		$nonce = ! empty( $_POST['tp-event-settings-nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['tp-event-settings-nonce'] ) ) : '';
+		if ( ! $nonce || ! wp_verify_nonce( $nonce, 'tp-event-settings' ) ) {
 			return false;
 		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Permission denied.', 'wp-events-manager' ) );
+		}
+
 		global $current_tab;
 
 		do_action( 'event_admin_setting_update_' . $current_tab );
 		do_action( 'event_admin_setting_update', $current_tab );
 
 		self::add_message( __( 'Your settings have been saved.', 'wp-events-manager' ) );
-		do_action( 'event_admin_settings_updated', $_POST );
+		do_action( 'event_admin_settings_updated', wp_unslash( $_POST ) );
 	}
 
 	/**
 	 * Output page setting
+	 *
 	 * @since 2.0
 	 */
 	public static function output() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Permission denied.', 'wp-events-manager' ) );
+		}
+
 		global $current_tab, $current_section;
 		self::get_setting_pages();
 		$tabs            = apply_filters( 'event_admin_settings_tabs_array', array() );
-		$current_tab     = isset( $_GET['tab'] ) && $_GET['tab'] ? sanitize_text_field( $_GET['tab'] ) : current( array_keys( $tabs ) );
-		$current_section = isset( $_GET['section'] ) && $_GET['section'] ? sanitize_text_field( $_GET['section'] ) : '';
+		$requested_tab   = isset( $_GET['tab'] ) && $_GET['tab'] ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+		$current_tab     = $requested_tab && isset( $tabs[ $requested_tab ] ) ? $requested_tab : current( array_keys( $tabs ) );
+		$current_section = isset( $_GET['section'] ) && $_GET['section'] ? sanitize_key( wp_unslash( $_GET['section'] ) ) : '';
 		if ( ! empty( $_POST ) ) {
 			self::save();
 		}
@@ -88,8 +102,20 @@ class WPEMS_Admin_Settings {
 				<form method="POST" name="tp_event_options" action="">
 					<h2 class="nav-tab-wrapper">
 						<?php foreach ( $tabs as $key => $title ) : ?>
-							<a href="<?php echo esc_url( admin_url( 'admin.php?page=tp-event-setting&tab=' . $key ) ); ?>" class="nav-tab<?php echo $current_tab === $key ? ' nav-tab-active' : ''; ?>" data-tab="<?php echo esc_attr( $key ); ?>">
-								<?php printf( '%s', $title ); ?>
+							<a href="
+							<?php
+							echo esc_url(
+								add_query_arg(
+									array(
+										'page' => 'tp-event-setting',
+										'tab'  => sanitize_key( $key ),
+									),
+									admin_url( 'admin.php' )
+								)
+							);
+							?>
+										" class="nav-tab<?php echo $current_tab === $key ? ' nav-tab-active' : ''; ?>" data-tab="<?php echo esc_attr( $key ); ?>">
+								<?php echo esc_html( $title ); ?>
 							</a>
 						<?php endforeach; ?>
 					</h2>
@@ -144,46 +170,46 @@ class WPEMS_Admin_Settings {
 			}
 			switch ( $field['type'] ) {
 				case 'section_start':
-					include( WPEMS_INC . 'admin/views/settings/section-start.php' );
+					include WPEMS_INC . 'admin/views/settings/section-start.php';
 					break;
 				case 'section_end':
-					include( WPEMS_INC . 'admin/views/settings/section-end.php' );
+					include WPEMS_INC . 'admin/views/settings/section-end.php';
 					break;
 
 				case 'select':
 				case 'multiselect':
-					include( WPEMS_INC . 'admin/views/settings/select.php' );
+					include WPEMS_INC . 'admin/views/settings/select.php';
 					break;
 
 				case 'text':
 				case 'number':
 				case 'email':
 				case 'password':
-					include( WPEMS_INC . 'admin/views/settings/text.php' );
+					include WPEMS_INC . 'admin/views/settings/text.php';
 					break;
 
 				case 'checkbox':
-					include( WPEMS_INC . 'admin/views/settings/checkbox.php' );
+					include WPEMS_INC . 'admin/views/settings/checkbox.php';
 					break;
 
 				case 'yes_no':
-					include( WPEMS_INC . 'admin/views/settings/yes-no.php' );
+					include WPEMS_INC . 'admin/views/settings/yes-no.php';
 					break;
 
 				case 'radio':
-					include( WPEMS_INC . 'admin/views/settings/radio.php' );
+					include WPEMS_INC . 'admin/views/settings/radio.php';
 					break;
 
 				case 'image_size':
-					include( WPEMS_INC . 'admin/views/settings/image-size.php' );
+					include WPEMS_INC . 'admin/views/settings/image-size.php';
 					break;
 
 				case 'textarea':
-					include( WPEMS_INC . 'admin/views/settings/textarea.php' );
+					include WPEMS_INC . 'admin/views/settings/textarea.php';
 					break;
 
 				case 'select_page':
-					include( WPEMS_INC . 'admin/views/settings/select-page.php' );
+					include WPEMS_INC . 'admin/views/settings/select-page.php';
 					break;
 
 				default:
@@ -203,19 +229,67 @@ class WPEMS_Admin_Settings {
 	public static function save_fields( $settings = array() ) {
 		foreach ( $settings as $setting ) {
 			if ( isset( $setting['id'] ) && array_key_exists( $setting['id'], $_POST ) ) {
-				if ( $setting['type'] == 'textarea' ) {
-					update_option( $setting['id'], htmlentities( stripslashes( $_POST[ $setting['id'] ] ) ) );
-				} else {
-					update_option( $setting['id'], sanitize_text_field( $_POST[ $setting['id'] ] ) );
-				}
+				update_option( $setting['id'], self::sanitize_field_value( $setting, wp_unslash( $_POST[ $setting['id'] ] ) ) );
 			}
+		}
+	}
+
+	/**
+	 * Sanitize a posted setting value according to field type.
+	 *
+	 * @param array $setting Setting schema.
+	 * @param mixed $value   Unslashed posted value.
+	 *
+	 * @return mixed
+	 */
+	private static function sanitize_field_value( $setting, $value ) {
+		$type = isset( $setting['type'] ) ? $setting['type'] : 'text';
+
+		if ( is_array( $value ) ) {
+			$value = map_deep( $value, 'sanitize_text_field' );
+			if ( 'multiselect' !== $type ) {
+				$value = reset( $value );
+			}
+		}
+
+		switch ( $type ) {
+			case 'textarea':
+				return wp_kses_post( $value );
+			case 'email':
+				return sanitize_email( $value );
+			case 'number':
+				return is_numeric( $value ) ? $value : '';
+			case 'select_page':
+				return absint( $value );
+			case 'yes_no':
+				return 'yes' === $value ? 'yes' : 'no';
+			case 'checkbox':
+				return empty( $value ) ? '0' : '1';
+			case 'select':
+			case 'radio':
+				$value = sanitize_text_field( $value );
+				if ( ! empty( $setting['options'] ) && is_array( $setting['options'] ) ) {
+					$allowed = array_map( 'strval', array_keys( $setting['options'] ) );
+					return in_array( $value, $allowed, true ) ? $value : (string) reset( $allowed );
+				}
+				return $value;
+			case 'multiselect':
+				if ( ! is_array( $value ) ) {
+					return array();
+				}
+				if ( ! empty( $setting['options'] ) && is_array( $setting['options'] ) ) {
+					$allowed = array_map( 'strval', array_keys( $setting['options'] ) );
+					return array_values( array_intersect( $value, $allowed ) );
+				}
+				return $value;
+			default:
+				return is_array( $value ) ? $value : sanitize_text_field( $value );
 		}
 	}
 
 	public static function register_setting() {
 		register_setting( 'thimpress_events', 'thimpress_events' );
 	}
-
 }
 
 WPEMS_Admin_Settings::init();

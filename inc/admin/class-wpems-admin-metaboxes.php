@@ -64,22 +64,29 @@ class WPEMS_Admin_Metaboxes {
 	 * @return boolean
 	 */
 	public static function save_post_meta( $post_id ) {
-		if ( empty( $_POST ) && defined( 'DOING_AJAX' ) && DOING_AJAX ) {
+		if ( empty( $_POST ) || ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) || wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
 			return false;
 		}
 
 		$post_type = get_post_type( $post_id );
-		if ( ! in_array( $post_type, array( 'tp_event', 'event_auth_book' ) ) ) {
+		if ( ! in_array( $post_type, array( 'tp_event', 'event_auth_book' ), true ) ) {
 			return false;
 		}
 
-		if ( $post_type == 'tp_event' && ( empty( $_POST['event-nonce'] ) || ! wp_verify_nonce( $_POST['event-nonce'], 'event_nonce' ) ) ) {
-			return false;
-		} elseif ( $post_type == 'event_auth_book' && ( empty( $_POST['event-booking-nonce'] ) || ! wp_verify_nonce( $_POST['event-booking-nonce'], 'event_booking_nonce' ) ) ) {
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
 			return false;
 		}
 
-		do_action( 'tp_event_process_update_' . $post_type . '_meta', $post_id, $_POST );
+		$event_nonce   = ! empty( $_POST['event-nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['event-nonce'] ) ) : '';
+		$booking_nonce = ! empty( $_POST['event-booking-nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['event-booking-nonce'] ) ) : '';
+
+		if ( 'tp_event' === $post_type && ( ! $event_nonce || ! wp_verify_nonce( $event_nonce, 'event_nonce' ) ) ) {
+			return false;
+		} elseif ( 'event_auth_book' === $post_type && ( ! $booking_nonce || ! wp_verify_nonce( $booking_nonce, 'event_booking_nonce' ) ) ) {
+			return false;
+		}
+
+		do_action( 'tp_event_process_update_' . $post_type . '_meta', $post_id, wp_unslash( $_POST ) );
 	}
 
 	/**
@@ -95,6 +102,7 @@ class WPEMS_Admin_Metaboxes {
 
 	/**
 	 * Print notices error save post meta
+	 *
 	 * @return type
 	 */
 	public static function print_errors() {
@@ -111,7 +119,6 @@ class WPEMS_Admin_Metaboxes {
 		echo '</div>';
 		delete_option( 'tp_event_meta_box_error_messages' );
 	}
-
 }
 
 WPEMS_Admin_Metaboxes::init();

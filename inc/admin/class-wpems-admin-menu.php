@@ -16,12 +16,14 @@ class WPEMS_Admin_Menu {
 
 	/**
 	 * menus
+	 *
 	 * @var array
 	 */
 	public $_menus = array();
 
 	/**
 	 * instead new class
+	 *
 	 * @var null
 	 */
 	static $_instance = null;
@@ -35,17 +37,18 @@ class WPEMS_Admin_Menu {
 	public function admin_menu() {
 		/**
 		 * menus
+		 *
 		 * @var array
 		 */
 		$menus = apply_filters( 'tp_event_admin_menu', $this->_menus );
-		add_menu_page( __( 'Events Manager', 'wp-events-manager' ), __( 'Events Manager', 'wp-events-manager' ), 'administrator', 'tp-event-setting', null, 'dashicons-calendar-alt', 4 );
+		add_menu_page( __( 'Events Manager', 'wp-events-manager' ), __( 'Events Manager', 'wp-events-manager' ), 'manage_options', 'tp-event-setting', null, 'dashicons-calendar-alt', 4 );
 		if ( $menus ) {
 			foreach ( $menus as $menu ) {
 				call_user_func_array( 'add_submenu_page', $menu );
 			}
 		}
-		add_submenu_page( 'tp-event-setting', __( 'WP Event Users', 'wp-events-manager' ), __( 'Users', 'wp-events-manager' ), 'administrator', 'tp-event-users', array( 'WPEMS_Admin_Users', 'output' ) );
-		add_submenu_page( 'tp-event-setting', __( 'WP Event Settings', 'wp-events-manager' ), __( 'Settings', 'wp-events-manager' ), 'administrator', 'tp-event-setting', array( 'WPEMS_Admin_Settings', 'output' ) );
+		add_submenu_page( 'tp-event-setting', __( 'WP Event Users', 'wp-events-manager' ), __( 'Users', 'wp-events-manager' ), 'list_users', 'tp-event-users', array( 'WPEMS_Admin_Users', 'output' ) );
+		add_submenu_page( 'tp-event-setting', __( 'WP Event Settings', 'wp-events-manager' ), __( 'Settings', 'wp-events-manager' ), 'manage_options', 'tp-event-setting', array( 'WPEMS_Admin_Settings', 'output' ) );
 	}
 
 	/**
@@ -59,6 +62,7 @@ class WPEMS_Admin_Menu {
 
 	/**
 	 * instance
+	 *
 	 * @return object class
 	 */
 	public static function instance() {
@@ -68,7 +72,6 @@ class WPEMS_Admin_Menu {
 
 		return new self();
 	}
-
 }
 
 WPEMS_Admin_Menu::instance();

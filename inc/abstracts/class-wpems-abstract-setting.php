@@ -16,12 +16,14 @@ abstract class WPEMS_Abstract_Setting {
 
 	/**
 	 * Setting page id
+	 *
 	 * @var type string
 	 */
 	protected $id = null;
 
 	/**
 	 * Setting page title
+	 *
 	 * @var type string
 	 */
 	protected $label = null;
@@ -35,6 +37,7 @@ abstract class WPEMS_Abstract_Setting {
 
 	/**
 	 * Get options setting page
+	 *
 	 * @return type array
 	 */
 	public function get_settings() {
@@ -43,6 +46,7 @@ abstract class WPEMS_Abstract_Setting {
 
 	/**
 	 * Get options setting page section
+	 *
 	 * @return type array
 	 */
 	public function get_sections() {
@@ -73,7 +77,9 @@ abstract class WPEMS_Abstract_Setting {
 			echo '<ul class="subsubsub">';
 			$array_keys = array_keys( $sections );
 			foreach ( $sections as $id => $label ) {
-				echo '<li><a href="' . admin_url( 'admin.php?page=tp-event-setting&tab=' . $this->id . '&section=' . sanitize_title( $id ) ) . '" class="' . ( $current_section === $id ? 'current' : '' ) . '">' . $label . '</a> ' . ( end( $array_keys ) == $id ? '' : '|' ) . ' </li>';
+				$url   = admin_url( 'admin.php?page=tp-event-setting&tab=' . rawurlencode( $this->id ) . '&section=' . sanitize_title( $id ) );
+				$class = $current_section === $id ? 'current' : '';
+				echo '<li><a href="' . esc_url( $url ) . '" class="' . esc_attr( $class ) . '">' . esc_html( $label ) . '</a> ' . ( end( $array_keys ) === $id ? '' : '|' ) . ' </li>';
 			}
 
 			echo '</ul><br class="clear" />';
@@ -92,11 +98,11 @@ abstract class WPEMS_Abstract_Setting {
 
 	/**
 	 * Save action callback
+	 *
 	 * @since 2.0
 	 */
 	public function save() {
 		$settings = $this->get_settings();
 		WPEMS_Admin_Settings::save_fields( $settings );
 	}
-
 }

@@ -4,3 +4,4 @@
 composer.lock
 /releases
 release
+/assets/dist/

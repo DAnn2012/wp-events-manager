@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 
 if ( ! class_exists( 'WP_List_Table' ) ) {
-	require_once( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' );
+	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
 }
 
 class WPEMS_Admin_Users extends WP_List_Table {
@@ -33,6 +33,11 @@ class WPEMS_Admin_Users extends WP_List_Table {
 
 	public function load_users() {
 		global $wpdb;
+
+		if ( ! current_user_can( 'list_users' ) ) {
+			return array();
+		}
+
 		if ( isset( $_GET['user_id'] ) && $_GET['user_id'] ) {
 			$query = $wpdb->prepare(
 				"
@@ -52,7 +57,7 @@ class WPEMS_Admin_Users extends WP_List_Table {
 				'ea-pending',
 				'ea-processing',
 				'ea-completed',
-				absint( $_GET['user_id'] )
+				absint( wp_unslash( $_GET['user_id'] ) )
 			);
 		} else {
 			$query = $wpdb->prepare(
@@ -83,14 +88,14 @@ class WPEMS_Admin_Users extends WP_List_Table {
 			foreach ( $users as $user ) {
 				// $approve = is_super_admin( $user->ID ) || get_user_meta( $user->ID, 'ea_user_approved', true ) ;
 
-				$booking_url = admin_url() . 'edit.php?post_type=event_auth_book&user_id=' . $user->ID;
+				$booking_url = admin_url( 'edit.php?post_type=event_auth_book&user_id=' . absint( $user->ID ) );
 				$results[]   = array(
 					'ID'            => $user->ID,
-					'user_login'    => sprintf( '<a href="%s">%s</a>', get_edit_user_link( $user->ID ), $user->user_login ),
+					'user_login'    => sprintf( '<a href="%s">%s</a>', esc_url( get_edit_user_link( $user->ID ) ), esc_html( $user->user_login ) ),
 					'user_nicename' => $user->user_nicename,
 					'user_email'    => $user->user_email,
-					'bookings'      => sprintf( '<a href="%s">%s</a>', $booking_url, __( 'View', 'wp-events-manager' ) ),
-					// 'approved'		=> (boolean) $approve
+					'bookings'      => sprintf( '<a href="%s">%s</a>', esc_url( $booking_url ), esc_html__( 'View', 'wp-events-manager' ) ),
+					// 'approved'       => (boolean) $approve
 				);
 			}
 		}
@@ -100,7 +105,7 @@ class WPEMS_Admin_Users extends WP_List_Table {
 
 	// $this->items is empty
 	public function no_items() {
-		_e( 'No users found.', 'wp-events-manager' );
+		esc_html_e( 'No users found.', 'wp-events-manager' );
 	}
 
 	// default columns
@@ -108,15 +113,17 @@ class WPEMS_Admin_Users extends WP_List_Table {
 		switch ( $column ) {
 			case 'ID':
 			case 'user_login':
+				return wp_kses_post( $item[ $column ] );
+				break;
 			case 'user_nicename':
 			case 'user_email':
-				return $item[ $column ];
+				return esc_html( $item[ $column ] );
 				break;
 			case 'bookings':
-				return $item[ $column ];
+				return wp_kses_post( $item[ $column ] );
 				break;
 			default:
-				return print_r( $item, true );
+				return esc_html( print_r( $item, true ) );
 				break;
 		}
 	}
@@ -141,9 +148,12 @@ class WPEMS_Admin_Users extends WP_List_Table {
 	}
 
 	public function sort_data( $a, $b ) {
-		$orderby = ( ! empty( $_GET['orderby'] ) ) ? sanitize_text_field( $_GET['orderby'] ) : 'user_login';
+		$allowed_orderby = array( 'ID', 'user_login', 'user_nicename', 'user_email', 'bookings' );
+		$orderby         = ( ! empty( $_GET['orderby'] ) ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : 'user_login';
+		$orderby         = in_array( $orderby, $allowed_orderby, true ) ? $orderby : 'user_login';
 
-		$order = ( ! empty( $_GET['order'] ) ) ? sanitize_text_field( $_GET['order'] ) : 'asc';
+		$order = ( ! empty( $_GET['order'] ) ) ? strtolower( sanitize_key( wp_unslash( $_GET['order'] ) ) ) : 'asc';
+		$order = in_array( $order, array( 'asc', 'desc' ), true ) ? $order : 'asc';
 
 		$result = strcmp( $a[ $orderby ], $b[ $orderby ] );
 		return ( $order === 'asc' ) ? $result : - $result;
@@ -153,24 +163,30 @@ class WPEMS_Admin_Users extends WP_List_Table {
 	public function get_bulk_actions() {
 
 		return array(
-			// 'approve'    	=> __( 'Approve', 'wp-events-manager' ),
-			// 'unapprove'    	=> __( 'Unapprove', 'wp-events-manager' )
+			// 'approve'        => __( 'Approve', 'wp-events-manager' ),
+			// 'unapprove'      => __( 'Unapprove', 'wp-events-manager' )
 		);
 	}
 
 	// process bulk action
 	public function process_bulk_action() {
 		return;
-		if ( $_SERVER['REQUEST_METHOD'] === 'POST' ) {
+		$request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
+		if ( 'POST' === $request_method ) {
+			if ( ! current_user_can( 'promote_users' ) ) {
+				return;
+			}
+
+			check_admin_referer( 'bulk-' . $this->_args['plural'] );
+
 			if ( ! isset( $_POST['action'] ) || ! $_POST['action'] || ! isset( $_POST['users'] ) || empty( $_POST['users'] ) ) {
 				return;
 			}
 
-			$action = sanitize_text_field( $_POST['action'] );
-			$users  = absint( $_POST['users'] );
+			$action = sanitize_key( wp_unslash( $_POST['action'] ) );
+			$users  = array_map( 'absint', (array) wp_unslash( $_POST['users'] ) );
 
 			foreach ( $users as $user ) {
-				$status = get_user_meta( $user, 'ea_user_approved', true );
 				if ( $action === 'approve' || is_super_admin( $user ) ) {
 					update_user_meta( $user, 'ea_user_approved', true );
 				} elseif ( $action === 'unapprove' ) {
@@ -178,11 +194,17 @@ class WPEMS_Admin_Users extends WP_List_Table {
 				}
 			}
 		} else {
-			if ( ! isset( $_REQUEST['page'] ) || $_REQUEST['page'] !== 'tp-event-users' ) {
+			$page = isset( $_REQUEST['page'] ) ? sanitize_key( wp_unslash( $_REQUEST['page'] ) ) : '';
+			if ( 'tp-event-users' !== $page ) {
 				return;
 			}
 
-			if ( ! isset( $_REQUEST['event_nonce'] ) || ! wp_verify_nonce( $_REQUEST['event_nonce'], 'event_auth_user_action' ) ) {
+			if ( ! current_user_can( 'promote_users' ) ) {
+				return;
+			}
+
+			$nonce = isset( $_REQUEST['event_nonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['event_nonce'] ) ) : '';
+			if ( ! $nonce || ! wp_verify_nonce( $nonce, 'event_auth_user_action' ) ) {
 				return;
 			}
 
@@ -190,8 +212,8 @@ class WPEMS_Admin_Users extends WP_List_Table {
 				return;
 			}
 
-			$action  = sanitize_text_field( $_REQUEST['action'] );
-			$user_id = absint( sanitize_text_field( $_REQUEST['user_id'] ) );
+			$action  = sanitize_key( wp_unslash( $_REQUEST['action'] ) );
+			$user_id = absint( wp_unslash( $_REQUEST['user_id'] ) );
 
 			if ( $action === 'approve' ) {
 				update_user_meta( $user_id, 'ea_user_approved', true );
@@ -208,16 +230,16 @@ class WPEMS_Admin_Users extends WP_List_Table {
 		if ( isset( $item['approved'] ) && ! $item['approved'] ) {
 			// $status_name = __( 'Approve', 'wp-events-manager' );
 			// $status = add_query_arg( array(
-			// 			'action' 	=> 'approve',
-			// 			'user_id' 	=> $item['ID']
-			// 		), $status );
+			// 'action'    => 'approve',
+			// 'user_id'   => $item['ID']
+			// ), $status );
 			// $actions['edit'] = sprintf( __( '<a href="%s">%s</a>' ), $status, $status_name );
 		} else {
 			// $status_name = __( 'Unapprove', 'wp-events-manager' );
 			// $status = add_query_arg( array(
-			// 		'action' 	=> 'unapprove',
-			// 		'user_id' 	=> $item['ID']
-			// 	), $status );
+			// 'action'    => 'unapprove',
+			// 'user_id'   => $item['ID']
+			// ), $status );
 			// $actions['spam'] = sprintf( __( '<a href="%s">%s</a>' ), $status, $status_name );
 		}
 
@@ -227,7 +249,7 @@ class WPEMS_Admin_Users extends WP_List_Table {
 	public function column_cb( $item ) {
 		return sprintf(
 			'<input type="checkbox" name="users[]" value="%s" />',
-			$item['ID']
+			esc_attr( absint( $item['ID'] ) )
 		);
 	}
 
@@ -261,11 +283,15 @@ class WPEMS_Admin_Users extends WP_List_Table {
 	}
 
 	public static function output() {
+		if ( ! current_user_can( 'list_users' ) ) {
+			wp_die( esc_html__( 'Permission denied.', 'wp-events-manager' ) );
+		}
+
 		$user_table = new WPEMS_Admin_Users();
 		?>
 		<div class="wrap">
 
-			<h2><?php _e( 'Event Users', 'wp-events-manager' ); ?></h2>
+			<h2><?php esc_html_e( 'Event Users', 'wp-events-manager' ); ?></h2>
 
 			<?php $user_table->prepare_items(); ?>
 			<form method="post">
@@ -275,6 +301,4 @@ class WPEMS_Admin_Users extends WP_List_Table {
 		</div>
 		<?php
 	}
-
-
 }

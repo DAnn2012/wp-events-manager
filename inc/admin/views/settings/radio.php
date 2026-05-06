@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 $selected = wpems_get_option( $field['id'], isset( $field['default'] ) ? $field['default'] : '' );
 ?>
-<tr valign="top" <?php echo $field['class'] ? 'class="' . $field['class'] . '"' : ''; ?>>
+<tr valign="top" <?php echo $field['class'] ? 'class="' . esc_attr( $field['class'] ) . '"' : ''; ?>>
 	<th scope="row">
 		<?php if ( isset( $field['title'] ) ) : ?>
 			<label for="<?php echo isset( $field['id'] ) ? esc_attr( $field['id'] ) : ''; ?>">
@@ -27,7 +27,7 @@ $selected = wpems_get_option( $field['id'], isset( $field['default'] ) ? $field[
 			<?php foreach ( $field['options'] as $val => $text ) : ?>
 
 				<label>
-					<input type="radio" name="<?php echo isset( $field['id'] ) ? esc_attr( $field['id'] ) : ''; ?>"<?php selected( $selected, $val ); ?>/>
+					<input type="radio" name="<?php echo isset( $field['id'] ) ? esc_attr( $field['id'] ) : ''; ?>" value="<?php echo esc_attr( $val ); ?>"<?php selected( $selected, $val ); ?>/>
 					<?php echo esc_html( $text ); ?>
 				</label>
 

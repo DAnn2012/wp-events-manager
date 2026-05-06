@@ -41,7 +41,7 @@ $tomorrow = date( 'Y-m-d', strtotime( 'tomorrow' ) );
 		</div>
 		<div class="option_group">
 			<p class="form-field">
-				<label for="_price"><?php printf( '%s(%s)', __( 'Price', 'wp-events-manager' ), wpems_get_currency_symbol() ); ?></label>
+				<label for="_price"><?php printf( '%s(%s)', esc_html__( 'Price', 'wp-events-manager' ), esc_html( wpems_get_currency_symbol() ) ); ?></label>
 				<input type="number" step="any" min="0" class="short" name="<?php echo esc_attr( $prefix ); ?>price" id="_price" value="<?php echo esc_attr( floatval( $price ) ); ?>" />
 			</p>
 			<p class="event-meta-notice">

@@ -16,12 +16,14 @@ class WPEMS_Admin_Setting_Emails extends WPEMS_Abstract_Setting {
 
 	/**
 	 * ID
+	 *
 	 * @var type mixed
 	 */
 	public $id = null;
 
 	/**
 	 * Title
+	 *
 	 * @var type string
 	 */
 	public $label = null;
@@ -34,6 +36,7 @@ class WPEMS_Admin_Setting_Emails extends WPEMS_Abstract_Setting {
 
 	/**
 	 * Get options setting page
+	 *
 	 * @return type array
 	 */
 	public function get_settings() {
@@ -83,7 +86,7 @@ class WPEMS_Admin_Setting_Emails extends WPEMS_Abstract_Setting {
 				array(
 					'type'       => 'textarea',
 					'title'      => __( 'Message Body', 'wp-events-manager' ),
-					//'placeholder' => __( 'Register event', 'wp-events-manager' ),
+					// 'placeholder' => __( 'Register event', 'wp-events-manager' ),
 					'id'         => $prefix . 'email_body',
 					'default'    => $this->wpems_render(),
 					'class'      => 'email-setting-body' . ( $register_event_mail == 'no' ? ' hide-if-js' : '' ),
@@ -123,7 +126,6 @@ class WPEMS_Admin_Setting_Emails extends WPEMS_Abstract_Setting {
 
 		return $content;
 	}
-
 }
 
 return new WPEMS_Admin_Setting_Emails();

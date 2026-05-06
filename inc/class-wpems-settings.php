@@ -16,18 +16,21 @@ class WPEMS_Settings {
 
 	/**
 	 * $_options
+	 *
 	 * @var null
 	 */
 	public $_options = null;
 
 	/**
 	 * prefix option name
+	 *
 	 * @var string
 	 */
 	public $_prefix = 'thimpress_events';
 
 	/**
 	 * _instance
+	 *
 	 * @var null
 	 */
 	static $_instance = null;
@@ -53,10 +56,11 @@ class WPEMS_Settings {
 
 	/**
 	 * options load options
+	 *
 	 * @return array || null
 	 */
 	protected function options() {
-		$options = get_option( $this->_prefix, [] );
+		$options = get_option( $this->_prefix, array() );
 
 		return $options;
 	}
@@ -145,5 +149,4 @@ class WPEMS_Settings {
 
 		return $GLOBALS['event_auth_settings'] = self::$_instance[ $prefix ] = new self( $prefix );
 	}
-
 }

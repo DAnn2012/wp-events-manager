@@ -15,6 +15,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Load Composer autoloader for PSR-4 namespaced classes.
+ *
+ * @since 2.3.0
+ */
+if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
+	require_once __DIR__ . '/vendor/autoload.php';
+}
+
+/**
  * WPEMS class
  */
 if ( ! class_exists( 'WPEMS' ) ) {
@@ -62,6 +71,7 @@ if ( ! class_exists( 'WPEMS' ) ) {
 
 		/**
 		 * Init hooks plugins
+		 *
 		 * @since 2.0
 		 */
 		public function init_hooks() {
@@ -132,21 +142,39 @@ if ( ! class_exists( 'WPEMS' ) ) {
 		public function _include( $file = null ) {
 			if ( is_array( $file ) ) {
 				foreach ( $file as $key => $f ) {
-					if ( file_exists( WPEMS_PATH . $f ) ) {
-						require_once WPEMS_PATH . $f;
-					}
+					$this->include_plugin_file( $f );
 				}
 			} else {
-				if ( file_exists( WPEMS_PATH . $file ) ) {
-					require_once WPEMS_PATH . $file;
-				} elseif ( file_exists( $file ) ) {
-					require_once $file;
-				}
+				$this->include_plugin_file( $file );
 			}
 		}
 
 		/**
+		 * Include a plugin file only when it resolves inside this plugin.
+		 *
+		 * @param string|null $file Relative plugin file path.
+		 *
+		 * @return bool
+		 */
+		private function include_plugin_file( $file = null ) {
+			if ( ! $file || ! is_string( $file ) ) {
+				return false;
+			}
+
+			$base_path = realpath( WPEMS_PATH );
+			$file_path = realpath( WPEMS_PATH . ltrim( $file, '/\\' ) );
+			if ( ! $base_path || ! $file_path || 0 !== strpos( $file_path, $base_path . DIRECTORY_SEPARATOR ) ) {
+				return false;
+			}
+
+			require_once $file_path;
+
+			return true;
+		}
+
+		/**
 		 * load text domain
+		 *
 		 * @return null
 		 */
 		public function text_domain() {
@@ -166,6 +194,7 @@ if ( ! class_exists( 'WPEMS' ) ) {
 
 		/**
 		 * get instance class
+		 *
 		 * @return WPEMS
 		 */
 		public static function instance() {
@@ -175,7 +204,6 @@ if ( ! class_exists( 'WPEMS' ) ) {
 
 			return self::$_instance = new self();
 		}
-
 	}
 
 	if ( ! function_exists( 'WPEMS' ) ) {

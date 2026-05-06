@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 $content = wpems_get_option( $field['id'] ) == '' ? $field['default'] : html_entity_decode( wpems_get_option( $field['id'] ) );
 ?>
-<tr valign="top" <?php echo $field['class'] ? 'class="' . $field['class'] . '"' : ''; ?>>
+<tr valign="top" <?php echo $field['class'] ? 'class="' . esc_attr( $field['class'] ) . '"' : ''; ?>>
 	<th scope="row">
 		<?php if ( isset( $field['title'] ) ) : ?>
 			<label for="<?php echo isset( $field['id'] ) ? esc_attr( $field['id'] ) : ''; ?>">
@@ -34,7 +34,7 @@ $content = wpems_get_option( $field['id'] ) == '' ? $field['default'] : html_ent
 					data-target="<?php echo esc_attr( sanitize_key( $field['id'] ) ); ?>">
 					<?php foreach ( $field['allow_tags'] as $variable ) : ?>
 						<li data-variable="<?php echo esc_attr( $variable ); ?>">
-							<code><?php echo $variable; ?></code></li>
+							<code><?php echo esc_html( $variable ); ?></code></li>
 					<?php endforeach; ?>
 				</ol>
 				<p class="description">

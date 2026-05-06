@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 $val = wpems_get_option( $field['id'] );
 ?>
-<tr valign="top" <?php echo $field['class'] ? 'class="' . $field['class'] . '"' : ''; ?>>
+<tr valign="top" <?php echo $field['class'] ? 'class="' . esc_attr( $field['class'] ) . '"' : ''; ?>>
 	<th scope="row">
 		<?php if ( isset( $field['title'] ) ) : ?>
 			<label for="<?php echo isset( $field['id'] ) ? esc_attr( $field['id'] ) : ''; ?>">
