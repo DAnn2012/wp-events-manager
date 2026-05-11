@@ -72,6 +72,22 @@ class WPEMS_Autoloader {
 		$class_name = strtolower( $class_name );
 		$file       = $this->get_file_name_from_class( $class_name );
 
+		$legacy_admin_classes = array(
+			'wpems_admin'                 => 'Admin/Admin.php',
+			'wpems_admin_assets'          => 'Admin/Assets.php',
+			'wpems_admin_menu'            => 'Admin/Menu.php',
+			'wpems_admin_metaboxes'       => 'Admin/Metaboxes.php',
+			'wpems_admin_metabox_booking' => 'Admin/Metaboxes/Booking.php',
+			'wpems_admin_metabox_event'   => 'Admin/Metaboxes/Event.php',
+			'wpems_admin_settings'        => 'Admin/Settings/class-wpems-admin-settings.php',
+			'wpems_admin_users'           => 'Admin/Users.php',
+		);
+
+		if ( isset( $legacy_admin_classes[ $class_name ] ) ) {
+			$this->load_file( $this->include_path . $legacy_admin_classes[ $class_name ] );
+			return;
+		}
+
 		$path = $this->include_path;
 
 		// payment gateways
@@ -81,11 +97,6 @@ class WPEMS_Autoloader {
 		// abstract class
 		if ( strpos( $class_name, 'wpems_abstract_' ) === 0 ) {
 			$path = $this->include_path . 'abstracts/';
-		}
-
-		// admin metaboxs
-		if ( strpos( $class_name, 'wpems_admin_metabox_' ) === 0 ) {
-			$path = $this->include_path . 'admin/metaboxes/';
 		}
 
 		// widgets

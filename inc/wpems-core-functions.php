@@ -185,6 +185,60 @@ if ( ! function_exists( 'wpems_template_path' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wpems_admin_template_path' ) ) {
+	/**
+	 * Get admin template override path inside themes.
+	 *
+	 * @return string
+	 */
+	function wpems_admin_template_path() {
+		return apply_filters( 'wpems_admin_template_path', trailingslashit( wpems_template_path() ) . 'admin' );
+	}
+}
+
+if ( ! function_exists( 'wpems_get_admin_template' ) ) {
+	/**
+	 * Load an admin template from templates/admin.
+	 *
+	 * @param string $template_name Relative admin template name.
+	 * @param array  $args          Template args.
+	 * @param string $template_path Optional theme override path.
+	 * @param string $default_path  Optional default path.
+	 *
+	 * @return void
+	 */
+	function wpems_get_admin_template( $template_name, $args = array(), $template_path = '', $default_path = '' ) {
+		if ( ! $template_path ) {
+			$template_path = wpems_admin_template_path();
+		}
+
+		if ( ! $default_path ) {
+			$default_path = WPEMS_PATH . 'templates/admin/';
+		}
+
+		wpems_get_template( $template_name, $args, $template_path, $default_path );
+	}
+}
+
+if ( ! function_exists( 'wpems_get_admin_template_content' ) ) {
+	/**
+	 * Capture an admin template.
+	 *
+	 * @param string $template_name Relative admin template name.
+	 * @param array  $args          Template args.
+	 * @param string $template_path Optional theme override path.
+	 * @param string $default_path  Optional default path.
+	 *
+	 * @return string
+	 */
+	function wpems_get_admin_template_content( $template_name, $args = array(), $template_path = '', $default_path = '' ) {
+		ob_start();
+		wpems_get_admin_template( $template_name, $args, $template_path, $default_path );
+
+		return ob_get_clean();
+	}
+}
+
 if ( ! function_exists( 'wpems_get_template_part' ) ) {
 
 	function wpems_get_template_part( $slug, $name = '' ) {

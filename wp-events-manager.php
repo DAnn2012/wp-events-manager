@@ -111,7 +111,7 @@ if ( ! class_exists( 'WPEMS' ) ) {
 			$this->settings = WPEMS_Settings::instance();
 
 			if ( is_admin() ) {
-				$this->_include( 'inc/admin/class-wpems-admin.php' );
+				\WPEMS\Admin\Admin::init();
 			} else {
 				$this->_include( 'inc/class-wpems-template.php' );
 				$this->_include( 'inc/class-wpems-frontend-assets.php' );

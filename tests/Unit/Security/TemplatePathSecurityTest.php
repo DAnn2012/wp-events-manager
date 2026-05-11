@@ -95,4 +95,18 @@ class TemplatePathSecurityTest extends TestCase {
 
 		$this->assertSame( '', $output );
 	}
+
+	/**
+	 * Admin templates are located under templates/admin.
+	 *
+	 * @return void
+	 */
+	public function test_admin_template_loader_uses_admin_template_directory(): void {
+		$template = wpems_locate_template( 'settings/section-start.php', wpems_admin_template_path(), WPEMS_PATH . 'templates/admin/' );
+
+		$this->assertSame(
+			wpems_normalize_filesystem_path( realpath( WPEMS_PATH . 'templates/admin/settings/section-start.php' ) ),
+			$template
+		);
+	}
 }

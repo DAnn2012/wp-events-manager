@@ -26,9 +26,9 @@ class WPEMS_Install {
 	 */
 	public static function init() {
 		self::$db_upgrade = array(
-			'2.0'     => WPEMS_INC . 'admin/upgrades/upgrade-2.0.php',
-			'2.0.8'   => WPEMS_INC . 'admin/upgrades/upgrade-2.0.8.php',
-			'2.1.7.2' => WPEMS_INC . 'admin/upgrades/upgrade-2.1.7.2.php',
+			'2.0'     => WPEMS_INC . 'Upgrades/upgrade-2.0.php',
+			'2.0.8'   => WPEMS_INC . 'Upgrades/upgrade-2.0.8.php',
+			'2.1.7.2' => WPEMS_INC . 'Upgrades/upgrade-2.1.7.2.php',
 		);
 	}
 
@@ -165,7 +165,7 @@ class WPEMS_Install {
 		if ( ! $old_version || $old_version != WPEMS_VER ) {
 			foreach ( self::$db_upgrade as $ver => $file ) {
 				if ( ! $old_version || version_compare( $old_version, $ver, '<' ) ) {
-					$base_path = realpath( WPEMS_INC . 'admin/upgrades' );
+					$base_path = realpath( WPEMS_INC . 'Upgrades' );
 					$file_path = realpath( $file );
 					if ( $base_path && $file_path && 0 === strpos( $file_path, $base_path . DIRECTORY_SEPARATOR ) ) {
 						require_once $file_path;
