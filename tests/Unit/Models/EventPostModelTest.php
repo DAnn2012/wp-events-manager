@@ -11,6 +11,7 @@ use Brain\Monkey\Functions;
 use Mockery;
 use stdClass;
 use WPEMS\Databases\EventDB;
+use WPEMS\Databases\PostDB;
 use WPEMS\Models\EventPostModel;
 use WPEMS\Tests\Unit\TestCase;
 
@@ -29,6 +30,7 @@ class EventPostModelTest extends TestCase {
 
 		$this->resetStaticProperty( EventPostModel::class, 'instances', array() );
 		$this->resetStaticProperty( EventDB::class, 'instance', null );
+		$this->resetStaticProperty( PostDB::class, 'instance', null );
 	}
 
 	/**
@@ -37,30 +39,32 @@ class EventPostModelTest extends TestCase {
 	 * @return void
 	 */
 	public function test_find_returns_model_for_event_post(): void {
-		Functions\expect( 'get_post' )
-			->once()
-			->with( 11 )
-			->andReturn( $this->makePost( 11, 'tp_event', 'Event title' ) );
+		global $wpdb;
+
+		$wpdb = $this->makePostLookupWpdb( $this->makePostRow( 11, 'tp_event', 'Event title' ) );
 
 		$event = EventPostModel::find( 11 );
 
 		$this->assertInstanceOf( EventPostModel::class, $event );
 		$this->assertSame( 11, $event->get_id() );
 		$this->assertSame( 'Event title', $event->post_title );
+		$this->assertStringContainsString( "AND p.post_type = 'tp_event'", $wpdb->last_query );
+		$this->assertStringContainsString( 'AND p.ID = 11', $wpdb->last_query );
 	}
 
 	/**
-	 * It rejects posts with the wrong type.
+	 * It returns false when filtered event lookup has no row.
 	 *
 	 * @return void
 	 */
 	public function test_find_returns_false_for_wrong_type(): void {
-		Functions\expect( 'get_post' )
-			->once()
-			->with( 12 )
-			->andReturn( $this->makePost( 12, 'page', 'Page title' ) );
+		global $wpdb;
+
+		$wpdb = $this->makePostLookupWpdb( null );
 
 		$this->assertFalse( EventPostModel::find( 12 ) );
+		$this->assertStringContainsString( "AND p.post_type = 'tp_event'", $wpdb->last_query );
+		$this->assertStringContainsString( 'AND p.ID = 12', $wpdb->last_query );
 	}
 
 	/**

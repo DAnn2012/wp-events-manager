@@ -137,6 +137,160 @@ abstract class TestCase extends PHPUnitTestCase {
 	}
 
 	/**
+	 * Build a database row from a WP_Post double.
+	 *
+	 * @param int    $id        Post ID.
+	 * @param string $post_type Post type.
+	 * @param string $title     Post title.
+	 * @param string $status    Post status.
+	 *
+	 * @return \stdClass
+	 */
+	protected function makePostRow( int $id, string $post_type = 'post', string $title = 'Test post', string $status = 'publish' ): \stdClass {
+		return (object) get_object_vars( $this->makePost( $id, $post_type, $title, $status ) );
+	}
+
+	/**
+	 * Build a wpdb fake for PostDB-backed model lookups.
+	 *
+	 * @param \stdClass|array|null $row         Row returned by get_row(), or rows keyed by post ID.
+	 * @param array                $var_results Values returned by get_var().
+	 *
+	 * @return object
+	 */
+	protected function makePostLookupWpdb( $row, array $var_results = array() ) {
+		return new class( $row, $var_results ) {
+			/**
+			 * Core table names and charset fields.
+			 *
+			 * @var string
+			 */
+			public $users = 'wp_users', $posts = 'wp_posts', $postmeta = 'wp_postmeta', $options = 'wp_options', $terms = 'wp_terms', $term_relationships = 'wp_term_relationships', $term_taxonomy = 'wp_term_taxonomy', $charset = 'utf8mb4', $collate = 'utf8mb4_unicode_ci', $last_error = '', $last_query = '';
+
+			/**
+			 * Rows returned by get_row().
+			 *
+			 * @var array
+			 */
+			private $rows;
+
+			/**
+			 * Whether rows are keyed by post ID.
+			 *
+			 * @var bool
+			 */
+			private $is_map;
+
+			/**
+			 * Values returned by get_var().
+			 *
+			 * @var array
+			 */
+			private $var_results;
+
+			/**
+			 * Constructor.
+			 *
+			 * @param \stdClass|array|null $row         Row returned by get_row(), or rows keyed by post ID.
+			 * @param array                $var_results Values returned by get_var().
+			 */
+			public function __construct( $row, array $var_results ) {
+				$this->is_map      = is_array( $row );
+				$this->rows        = $this->is_map ? $row : array( $row );
+				$this->var_results = $var_results;
+			}
+
+			/**
+			 * Hide errors.
+			 *
+			 * @return void
+			 */
+			public function hide_errors(): void {}
+
+			/**
+			 * Check wpdb capability.
+			 *
+			 * @param string $cap Capability.
+			 *
+			 * @return bool
+			 */
+			public function has_cap( string $cap ): bool {
+				return 'collation' === $cap;
+			}
+
+			/**
+			 * Prepare a query for test assertions.
+			 *
+			 * @param string $query Query with placeholders.
+			 * @param mixed  ...$args Placeholder values.
+			 *
+			 * @return string
+			 */
+			public function prepare( string $query, ...$args ): string {
+				if ( 1 === count( $args ) && is_array( $args[0] ) ) {
+					$args = $args[0];
+				}
+
+				$index = 0;
+
+				return preg_replace_callback(
+					'/%[sd]/',
+					function ( $matches ) use ( $args, &$index ) {
+						$value = $args[ $index++ ] ?? '';
+
+						if ( '%d' === $matches[0] ) {
+							return (string) (int) $value;
+						}
+
+						return "'" . str_replace( "'", "''", (string) $value ) . "'";
+					},
+					$query
+				);
+			}
+
+			/**
+			 * Get a single row.
+			 *
+			 * @param string $query SQL query.
+			 *
+			 * @return \stdClass|null
+			 */
+			public function get_row( string $query ) {
+				$this->last_query = $query;
+
+				foreach ( $this->rows as $id => $row ) {
+					if ( is_numeric( $id ) && false !== strpos( $query, 'p.ID = ' . (int) $id ) ) {
+						return $row;
+					}
+				}
+
+				if ( $this->is_map ) {
+					return null;
+				}
+
+				return reset( $this->rows );
+			}
+
+			/**
+			 * Get a scalar value.
+			 *
+			 * @param string $query SQL query.
+			 *
+			 * @return mixed
+			 */
+			public function get_var( string $query ) {
+				$this->last_query = $query;
+
+				if ( empty( $this->var_results ) ) {
+					return '0';
+				}
+
+				return array_shift( $this->var_results );
+			}
+		};
+	}
+
+	/**
 	 * Reset a private static class property.
 	 *
 	 * @param string $class    Class name.

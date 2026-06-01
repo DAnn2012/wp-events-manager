@@ -8,6 +8,7 @@
 namespace WPEMS\Models;
 
 use Exception;
+use WPEMS\Filters\BookingFilter;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -44,7 +45,10 @@ class BookingPostModel extends PostModel {
 			return self::$instances[ $id ];
 		}
 
-		$booking = parent::find_by_id( $id );
+		$filter     = new BookingFilter();
+		$filter->ID = $id;
+
+		$booking = static::get_item_model_from_db( $filter );
 		if ( ! $booking instanceof self ) {
 			return false;
 		}
@@ -58,15 +62,15 @@ class BookingPostModel extends PostModel {
 	 * Get booking meta value by short key.
 	 *
 	 * @param string $key Meta key without ea_booking_ prefix.
-	 * @param mixed  $default Default value.
+	 * @param mixed  $default_value Default value.
 	 *
 	 * @return mixed
 	 */
-	public function get_meta( string $key, $default = false ) {
+	public function get_meta( string $key, $default_value = false ) {
 		$key      = sanitize_key( $key );
 		$meta_key = strpos( $key, 'ea_booking_' ) === 0 ? $key : 'ea_booking_' . $key;
 
-		return $this->get_meta_value_by_key( $meta_key, $default );
+		return $this->get_meta_value_by_key( $meta_key, $default_value );
 	}
 
 	/**

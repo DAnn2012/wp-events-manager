@@ -17,71 +17,23 @@ defined( 'ABSPATH' ) || exit;
  */
 class WPEMS_Booking {
 
-
-	private static $instance = array();
+	private static $instance = null;
 	public $post             = null;
 	public $ID               = null;
-	private $model           = null;
 
 	public function __construct( $id = null ) {
 
-		if ( $id instanceof \WPEMS\Models\BookingPostModel ) {
-			$this->model = $id;
-		} elseif ( is_numeric( $id ) && $id ) {
-			$this->model = \WPEMS\Models\BookingPostModel::find( absint( $id ) );
+		if ( is_numeric( $id ) && get_post_type( $id ) === 'event_auth_book' ) {
+			$this->post = get_post( $id );
 		} elseif ( $id instanceof WP_Post || is_object( $id ) ) {
 			$this->post = $id;
-
-			if ( ! empty( $id->ID ) && ( empty( $id->post_type ) || $id->post_type === 'event_auth_book' ) ) {
-				$this->model = new \WPEMS\Models\BookingPostModel( $id );
-			}
 		}
 
-		if ( $this->model ) {
-				$this->ID   = $this->model->get_id();
-				$this->post = $this->post ? $this->post : $this->post_from_model( $this->model );
+		if ( $this->post ) {
+			$this->ID = $this->post->ID;
 		}
 	}
 
-	/**
-	 * Build a WP_Post-like object from the model data.
-	 *
-	 * @param \WPEMS\Models\BookingPostModel $model Booking model.
-	 *
-	 * @return WP_Post
-	 */
-	private function post_from_model( \WPEMS\Models\BookingPostModel $model ) {
-
-		return new WP_Post(
-			(object) array(
-				'ID'                => $model->ID,
-				'post_author'       => $model->post_author,
-				'post_date'         => $model->post_date,
-				'post_date_gmt'     => $model->post_date_gmt,
-				'post_modified'     => $model->post_modified,
-				'post_modified_gmt' => $model->post_modified_gmt,
-				'post_content'      => $model->post_content,
-				'post_title'        => $model->post_title,
-				'post_excerpt'      => $model->post_excerpt,
-				'post_status'       => $model->post_status,
-				'post_password'     => $model->post_password,
-				'post_name'         => $model->post_name,
-				'post_type'         => $model->post_type,
-				'post_parent'       => $model->post_parent,
-				'filter'            => $model->filter,
-			)
-		);
-	}
-
-	/**
-	 * Get wrapped model.
-	 *
-	 * @return \WPEMS\Models\BookingPostModel|null
-	 */
-	public function get_model() {
-
-		return $this->model;
-	}
 	/**
 	 * Megic method
 	 *
@@ -91,59 +43,97 @@ class WPEMS_Booking {
 	 */
 	public function __get( $key = null ) {
 
-		return $this->model ? $this->model->get_meta( (string) $key ) : null;
+		switch ( $key ) {
+			default:
+				$result = get_post_meta( $this->ID, 'ea_booking_' . $key, true );
+				break;
+		}
+
+		return $result;
 	}
 
 	// create booking
 	public function create_booking( $args = array(), $payment = '' ) {
 
-		$model      = new \WPEMS\Models\BookingPostModel();
-		$booking_id = $model->create_booking( (array) $args, (string) $payment );
+		// current user
+		$user = wp_get_current_user();
+		// merge argument
+		$args       = wp_parse_args(
+			$args,
+			array(
+				'user_id'    => $user->ID,
+				'event_id'   => 0,
+				'qty'        => 1,
+				'cost'       => 0,
+				'payment_id' => false,
+			)
+		);
+		$booking_id = wp_insert_post(
+			array(
+				'post_title'   => sprintf( __( '%1$s booking event %2$s', 'wp-events-manager' ), $user->user_nicename, $args['event_id'] ),
+				'post_content' => sprintf( __( '%1$s booking event %2$s with %3$s slot', 'wp-events-manager' ), $user->user_nicename, $args['event_id'], $args['qty'] ),
+				'post_exceprt' => sprintf( __( '%1$s booking event %2$s with %3$s slot', 'wp-events-manager' ), $user->user_nicename, $args['event_id'], $args['qty'] ),
+				'post_status'  => 'ea-pending',
+				'post_type'    => 'event_auth_book',
+			)
+		);
 
-		if ( ! is_wp_error( $booking_id ) ) {
-			$this->model = $model;
-			$this->ID    = $model->get_id();
-			$this->post  = $this->post_from_model( $model );
+		if ( is_wp_error( $booking_id ) ) {
+			return $booking_id;
+		} else {
+			foreach ( $args as $key => $val ) {
+				update_post_meta( $booking_id, 'ea_booking_' . $key, $val );
+			}
+
+			do_action( 'tp_event_create_new_booking', $booking_id, $args );
+			return $booking_id;
 		}
-
-		return $booking_id;
 	}
 
 	// update status
 	public function update_status( $status = 'ea-completed' ) {
-
-		if ( ! $this->model && $this->ID ) {
-			$this->model = \WPEMS\Models\BookingPostModel::find( absint( $this->ID ) );
-		}
-
-		if ( ! $this->model ) {
+		if ( ! $this->post || $this->post->post_type !== 'event_auth_book' ) {
 			return;
 		}
+		if ( ! $this->post || ! $this->ID ) {
+			throw new Exception( sprintf( __( 'Booking ID #%s is not exists.', 'wp-events-manager' ), $this->ID ) );
+		}
+		$old_status = get_post_status( $this->ID );
 
-		return $this->model->update_status( (string) $status );
+		if ( strpos( $status, 'ea-' ) === false ) {
+			$status = 'ea-' . $status;
+		}
+
+		$id = wp_update_post(
+			array(
+				'ID'          => $this->ID,
+				'post_status' => $status,
+			)
+		);
+
+		if ( $id && ! is_wp_error( $id ) ) {
+			// send email or anythings
+			do_action( 'tp_event_updated_status', $id, $old_status, $status );
+
+			do_action( 'tp_event_updated_status_' . $old_status . '_' . $status, $id, $old_status, $status );
+		}
 	}
 
 	public static function instance( $id = null ) {
-
-		if ( $id instanceof \WPEMS\Models\BookingPostModel ) {
-			$booking_id = $id->get_id();
-		} elseif ( is_numeric( $id ) ) {
-			$booking_id = absint( $id );
+		$booking_id = null;
+		if ( is_numeric( $id ) && get_post_type( $id ) === 'event_auth_book' ) {
+			$post       = get_post( $id );
+			$booking_id = $post->ID;
 		} elseif ( $id instanceof WP_Post || is_object( $id ) ) {
-			$booking_id = ! empty( $id->ID ) ? absint( $id->ID ) : 0;
-		} else {
-			$booking_id = 0;
+			$booking_id = $id->ID;
 		}
 
-		if ( $booking_id && ! empty( self::$instance[ $booking_id ] ) ) {
+		if ( ! empty( self::$instance[ $booking_id ] ) ) {
 			return self::$instance[ $booking_id ];
 		}
 
-		$instance = new self( $id );
-		if ( $instance->ID ) {
-			self::$instance[ $instance->ID ] = $instance;
-		}
+		self::$instance[ $booking_id ] = new self( $booking_id );
 
-		return $instance;
+		return self::$instance[ $booking_id ];
 	}
 }

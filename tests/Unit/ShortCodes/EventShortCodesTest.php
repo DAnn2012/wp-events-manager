@@ -8,7 +8,15 @@
 namespace WPEMS\Tests\Unit\ShortCodes;
 
 use Brain\Monkey\Functions;
+use WPEMS\ShortCodes\AbstractShortcode;
+use WPEMS\ShortCodes\AccountShortcode;
+use WPEMS\ShortCodes\CountdownShortcode;
 use WPEMS\ShortCodes\EventShortCodes;
+use WPEMS\ShortCodes\ForgotPasswordShortcode;
+use WPEMS\ShortCodes\ListEventShortcode;
+use WPEMS\ShortCodes\LoginShortcode;
+use WPEMS\ShortCodes\RegisterShortcode;
+use WPEMS\ShortCodes\ResetPasswordShortcode;
 use WPEMS\Tests\Unit\TestCase;
 
 /**
@@ -25,6 +33,7 @@ class EventShortCodesTest extends TestCase {
 		parent::setUp();
 
 		\WPEMS_Shortcodes::reset();
+		$this->resetStaticProperty( AbstractShortcode::class, 'instances', array() );
 	}
 
 	/**
@@ -55,6 +64,45 @@ class EventShortCodesTest extends TestCase {
 		$this->assertCount( 7, $shortcodes );
 		$this->assertArrayHasKey( 'wp_event_list_event', $shortcodes );
 		$this->assertArrayHasKey( 'wp_event_reset_password', $shortcodes );
+		$this->assertInstanceOf( ListEventShortcode::class, $shortcodes['wp_event_list_event'][0] );
+		$this->assertInstanceOf( RegisterShortcode::class, $shortcodes['wp_event_register'][0] );
+		$this->assertInstanceOf( LoginShortcode::class, $shortcodes['wp_event_login'][0] );
+		$this->assertInstanceOf( ForgotPasswordShortcode::class, $shortcodes['wp_event_forgot_password'][0] );
+		$this->assertInstanceOf( ResetPasswordShortcode::class, $shortcodes['wp_event_reset_password'][0] );
+		$this->assertInstanceOf( AccountShortcode::class, $shortcodes['wp_event_account'][0] );
+		$this->assertInstanceOf( CountdownShortcode::class, $shortcodes['wp_event_countdown'][0] );
+		$this->assertSame( 'render', $shortcodes['wp_event_list_event'][1] );
+	}
+
+	/**
+	 * It preserves shortcode tag filters.
+	 *
+	 * @return void
+	 */
+	public function test_init_preserves_shortcode_tag_filters(): void {
+		$shortcodes = array();
+
+		Functions\when( 'add_action' )->justReturn( true );
+		Functions\when( 'apply_filters' )->alias(
+			function ( $hook, $value = null ) {
+				if ( 'wp_event_login_shortcode_tag' === $hook ) {
+					return 'custom_event_login';
+				}
+
+				return $value;
+			}
+		);
+		Functions\when( 'add_shortcode' )->alias(
+			function ( $tag, $callback ) use ( &$shortcodes ) {
+				$shortcodes[ $tag ] = $callback;
+			}
+		);
+
+		EventShortCodes::init();
+
+		$this->assertArrayHasKey( 'custom_event_login', $shortcodes );
+		$this->assertArrayNotHasKey( 'wp_event_login', $shortcodes );
+		$this->assertInstanceOf( LoginShortcode::class, $shortcodes['custom_event_login'][0] );
 	}
 
 	/**

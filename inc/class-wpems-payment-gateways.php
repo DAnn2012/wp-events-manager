@@ -28,7 +28,7 @@ class WPEMS_Payment_Gateways {
 
 	public function init() {
 
-		$payment_gateways = array( 'WPEMS\\Gateways\\PaypalGateway' );
+		$payment_gateways = array( 'WPEMS_Payment_Gateway_Paypal' );
 		foreach ( $payment_gateways as $gateway ) {
 			$gateway                        = is_string( $gateway ) ? new $gateway() : $gateway;
 			$this->gateways[ $gateway->id ] = $gateway;

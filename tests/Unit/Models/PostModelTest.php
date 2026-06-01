@@ -8,6 +8,7 @@
 namespace WPEMS\Tests\Unit\Models;
 
 use Brain\Monkey\Functions;
+use WPEMS\Databases\PostDB;
 use WPEMS\Models\PostModel;
 use WPEMS\Tests\Unit\TestCase;
 
@@ -15,6 +16,17 @@ use WPEMS\Tests\Unit\TestCase;
  * Test base post model behavior.
  */
 class PostModelTest extends TestCase {
+
+	/**
+	 * Reset database singleton.
+	 *
+	 * @return void
+	 */
+	protected function setUp(): void {
+		parent::setUp();
+
+		$this->resetStaticProperty( PostDB::class, 'instance', null );
+	}
 
 	/**
 	 * It maps only known object properties.
@@ -62,6 +74,25 @@ class PostModelTest extends TestCase {
 			->andReturn( 'Concert' );
 
 		$this->assertSame( 'Concert', $model->get_the_title() );
+	}
+
+	/**
+	 * It finds posts through PostDB and PostFilter.
+	 *
+	 * @return void
+	 */
+	public function test_find_by_id_uses_post_db_filter(): void {
+		global $wpdb;
+
+		$wpdb = $this->makePostLookupWpdb( $this->makePostRow( 21, 'post', 'DB post' ) );
+
+		$model = PostModel::find_by_id( 21 );
+
+		$this->assertInstanceOf( PostModel::class, $model );
+		$this->assertSame( 21, $model->get_id() );
+		$this->assertSame( 'DB post', $model->post_title );
+		$this->assertStringContainsString( "AND p.post_type = 'post'", $wpdb->last_query );
+		$this->assertStringContainsString( 'AND p.ID = 21', $wpdb->last_query );
 	}
 
 	/**

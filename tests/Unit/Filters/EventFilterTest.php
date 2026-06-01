@@ -8,6 +8,7 @@
 namespace WPEMS\Tests\Unit\Filters;
 
 use WPEMS\Filters\EventFilter;
+use WPEMS\Filters\PostFilter;
 use WPEMS\Tests\Unit\TestCase;
 
 /**
@@ -23,9 +24,11 @@ class EventFilterTest extends TestCase {
 	public function test_constructor_defaults(): void {
 		$filter = new EventFilter();
 
+		$this->assertInstanceOf( PostFilter::class, $filter );
 		$this->assertSame( 0, $filter->ID );
 		$this->assertSame( 'tp_event', $filter->post_type );
 		$this->assertSame( 10, $filter->limit );
+		$this->assertSame( array(), $filter->post_status );
 		$this->assertSame( 'post_date', $filter->order_by );
 		$this->assertSame( 'DESC', $filter->order );
 	}

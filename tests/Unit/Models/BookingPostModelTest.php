@@ -10,6 +10,7 @@ namespace WPEMS\Tests\Unit\Models;
 use Brain\Monkey\Functions;
 use Mockery;
 use stdClass;
+use WPEMS\Databases\PostDB;
 use WPEMS\Models\BookingPostModel;
 use WPEMS\Tests\Unit\TestCase;
 
@@ -27,6 +28,7 @@ class BookingPostModelTest extends TestCase {
 		parent::setUp();
 
 		$this->resetStaticProperty( BookingPostModel::class, 'instances', array() );
+		$this->resetStaticProperty( PostDB::class, 'instance', null );
 	}
 
 	/**
@@ -35,15 +37,31 @@ class BookingPostModelTest extends TestCase {
 	 * @return void
 	 */
 	public function test_find_returns_booking_model(): void {
-		Functions\expect( 'get_post' )
-			->once()
-			->with( 8 )
-			->andReturn( $this->makePost( 8, 'event_auth_book', 'Booking' ) );
+		global $wpdb;
+
+		$wpdb = $this->makePostLookupWpdb( $this->makePostRow( 8, 'event_auth_book', 'Booking' ) );
 
 		$booking = BookingPostModel::find( 8 );
 
 		$this->assertInstanceOf( BookingPostModel::class, $booking );
 		$this->assertSame( 8, $booking->get_id() );
+		$this->assertStringContainsString( "AND p.post_type = 'event_auth_book'", $wpdb->last_query );
+		$this->assertStringContainsString( 'AND p.ID = 8', $wpdb->last_query );
+	}
+
+	/**
+	 * It returns false when filtered booking lookup has no row.
+	 *
+	 * @return void
+	 */
+	public function test_find_returns_false_when_booking_lookup_has_no_row(): void {
+		global $wpdb;
+
+		$wpdb = $this->makePostLookupWpdb( null );
+
+		$this->assertFalse( BookingPostModel::find( 8 ) );
+		$this->assertStringContainsString( "AND p.post_type = 'event_auth_book'", $wpdb->last_query );
+		$this->assertStringContainsString( 'AND p.ID = 8', $wpdb->last_query );
 	}
 
 	/**

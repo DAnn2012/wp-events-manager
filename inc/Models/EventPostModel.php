@@ -48,7 +48,7 @@ class EventPostModel extends PostModel {
 		$filter     = new EventFilter();
 		$filter->ID = $id;
 
-		$event = parent::find_by_id( $filter->ID );
+		$event = static::get_item_model_from_db( $filter );
 		if ( ! $event instanceof self ) {
 			return false;
 		}
@@ -71,15 +71,15 @@ class EventPostModel extends PostModel {
 	 * Get event meta by short or full key.
 	 *
 	 * @param string $key     Meta key, with or without tp_event_ prefix.
-	 * @param mixed  $default Default value.
+	 * @param mixed  $default_value Default value.
 	 *
 	 * @return mixed
 	 */
-	public function get_meta( string $key, $default = false ) {
+	public function get_meta( string $key, $default_value = false ) {
 		$key      = sanitize_key( $key );
 		$meta_key = strpos( $key, 'tp_event_' ) === 0 ? $key : 'tp_event_' . $key;
 
-		return $this->get_meta_value_by_key( $meta_key, $default );
+		return $this->get_meta_value_by_key( $meta_key, $default_value );
 	}
 
 	/**
@@ -169,7 +169,10 @@ class EventPostModel extends PostModel {
 	 * @return array
 	 */
 	public function load_registered(): array {
-		return EventDB::getInstance()->get_registered_bookings( $this->get_id() );
+		$filter           = new EventFilter();
+		$filter->event_id = $this->get_id();
+
+		return EventDB::getInstance()->get_registered_bookings( $filter );
 	}
 
 	/**
@@ -200,6 +203,10 @@ class EventPostModel extends PostModel {
 	 * @return int
 	 */
 	public function booked_quantity( ?int $user_id = null ): int {
-		return EventDB::getInstance()->get_booked_quantity( $this->get_id(), $user_id );
+		$filter           = new EventFilter();
+		$filter->event_id = $this->get_id();
+		$filter->user_id  = $user_id;
+
+		return EventDB::getInstance()->get_booked_quantity( $filter );
 	}
 }

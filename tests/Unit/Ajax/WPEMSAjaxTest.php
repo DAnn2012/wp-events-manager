@@ -8,9 +8,8 @@
 namespace WPEMS\Tests\Unit\Ajax;
 
 use Brain\Monkey\Functions;
-use Mockery;
-use stdClass;
 use WPEMS\Databases\EventDB;
+use WPEMS\Databases\PostDB;
 use WPEMS\Models\BookingPostModel;
 use WPEMS\Models\EventPostModel;
 use WPEMS\Tests\Unit\TestCase;
@@ -31,6 +30,7 @@ class WPEMSAjaxTest extends TestCase {
 		$this->resetStaticProperty( EventPostModel::class, 'instances', array() );
 		$this->resetStaticProperty( BookingPostModel::class, 'instances', array() );
 		$this->resetStaticProperty( EventDB::class, 'instance', null );
+		$this->resetStaticProperty( PostDB::class, 'instance', null );
 	}
 
 	/**
@@ -79,12 +79,13 @@ class WPEMSAjaxTest extends TestCase {
 		$_POST['qty']                       = '2';
 		$_POST['event_auth_register_nonce'] = 'nonce';
 
-		$wpdb           = Mockery::mock( stdClass::class );
-		$wpdb->posts    = 'wp_posts';
-		$wpdb->postmeta = 'wp_postmeta';
-		$wpdb->users    = 'wp_users';
-		$wpdb->shouldReceive( 'prepare' )->twice()->andReturn( 'prepared quantity sql' );
-		$wpdb->shouldReceive( 'get_var' )->twice()->with( 'prepared quantity sql' )->andReturn( '0' );
+		$wpdb = $this->makePostLookupWpdb(
+			array(
+				88  => $this->makePostRow( 88, 'tp_event', 'Free event' ),
+				901 => $this->makePostRow( 901, 'event_auth_book', 'Booking #901', 'ea-pending' ),
+			),
+			array( '0', '0' )
+		);
 
 		$user = (object) array(
 			'ID'            => 44,

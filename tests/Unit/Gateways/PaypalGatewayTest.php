@@ -8,24 +8,26 @@
 namespace WPEMS\Tests\Unit\Gateways;
 
 use Brain\Monkey\Functions;
-use WPEMS\Gateways\PaypalGateway;
-use WPEMS\Models\BookingPostModel;
 use WPEMS\Tests\Unit\TestCase;
 
 /**
- * Test optimized PayPal gateway.
+ * Test legacy PayPal gateway.
  */
 class PaypalGatewayTest extends TestCase {
 
 	/**
-	 * Reset booking cache.
+	 * Reset booking cache and load legacy classes.
 	 *
 	 * @return void
 	 */
 	protected function setUp(): void {
 		parent::setUp();
 
-		$this->resetStaticProperty( BookingPostModel::class, 'instances', array() );
+		require_once WPEMS_INC . 'class-wpems-booking.php';
+		require_once WPEMS_INC . 'abstracts/class-wpems-abstract-payment-gateway.php';
+		require_once WPEMS_INC . 'gateways/paypal/class-wpems-payment-gateway-paypal.php';
+
+		$this->resetStaticProperty( \WPEMS_Booking::class, 'instance', null );
 	}
 
 	/**
@@ -68,10 +70,7 @@ class PaypalGatewayTest extends TestCase {
 			)
 		);
 
-		Functions\expect( 'get_post' )
-			->once()
-			->with( 70 )
-			->andReturn( $this->makePost( 70, 'event_auth_book', 'Booking #70', 'ea-pending' ) );
+		$this->mockLegacyBookingPost( 70 );
 
 		Functions\when( 'get_post_meta' )->alias(
 			function ( $post_id, $key, $single = true ) {
@@ -209,9 +208,9 @@ class PaypalGatewayTest extends TestCase {
 	 *
 	 * @param array $settings Gateway settings.
 	 *
-	 * @return PaypalGateway
+	 * @return \WPEMS_Payment_Gateway_Paypal
 	 */
-	private function makeGateway( array $settings = array() ): PaypalGateway {
+	private function makeGateway( array $settings = array() ): \WPEMS_Payment_Gateway_Paypal {
 		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'wpems_get_option' )->alias(
 			function ( $key, $default = '' ) use ( $settings ) {
@@ -219,7 +218,31 @@ class PaypalGatewayTest extends TestCase {
 			}
 		);
 
-		return new PaypalGateway();
+		return new \WPEMS_Payment_Gateway_Paypal();
+	}
+
+	/**
+	 * Mock legacy booking post lookup.
+	 *
+	 * @param int $booking_id Booking ID.
+	 *
+	 * @return void
+	 */
+	private function mockLegacyBookingPost( int $booking_id ): void {
+		Functions\when( 'get_post_type' )->alias(
+			function ( $post_id ) use ( $booking_id ) {
+				$this->assertSame( $booking_id, $post_id );
+
+				return 'event_auth_book';
+			}
+		);
+		Functions\when( 'get_post' )->alias(
+			function ( $post_id ) use ( $booking_id ) {
+				$this->assertSame( $booking_id, $post_id );
+
+				return $this->makePost( $booking_id, 'event_auth_book', 'Booking #' . $booking_id, 'ea-pending' );
+			}
+		);
 	}
 
 	/**
@@ -249,17 +272,14 @@ class PaypalGatewayTest extends TestCase {
 	}
 
 	/**
-	 * Mock a booking model lookup for PayPal IPN validation.
+	 * Mock a booking lookup for PayPal IPN validation.
 	 *
 	 * @param array $meta Booking meta.
 	 *
 	 * @return void
 	 */
 	private function mockBookingForIpn( array $meta ): void {
-		Functions\expect( 'get_post' )
-			->once()
-			->with( 70 )
-			->andReturn( $this->makePost( 70, 'event_auth_book', 'Booking #70', 'ea-pending' ) );
+		$this->mockLegacyBookingPost( 70 );
 
 		Functions\when( 'get_post_meta' )->alias(
 			function ( $post_id, $key, $single = true ) use ( $meta ) {

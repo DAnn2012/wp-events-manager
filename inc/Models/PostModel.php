@@ -15,6 +15,8 @@ namespace WPEMS\Models;
 use Exception;
 use stdClass;
 use Throwable;
+use WPEMS\Databases\PostDB;
+use WPEMS\Filters\PostFilter;
 use WP_Post;
 
 defined( 'ABSPATH' ) || exit();
@@ -160,10 +162,10 @@ class PostModel {
 	 * Find a post by ID.
 	 *
 	 * Validates that the post exists and matches the expected post_type
-	 * of the calling class.
+	 * of the calling class through PostDB.
 	 *
 	 * @param int  $post_id    The post ID.
-	 * @param bool $check_type Whether to verify the post_type matches. Default true.
+	 * @param bool $check_type Retained for backwards compatibility.
 	 *
 	 * @return false|static Returns the model instance or false if not found.
 	 */
@@ -172,19 +174,41 @@ class PostModel {
 			return false;
 		}
 
-		$post = get_post( $post_id );
-		if ( ! $post instanceof WP_Post ) {
-			return false;
+		$filter            = new PostFilter();
+		$filter->ID        = $post_id;
+		$filter->post_type = ( new static() )->post_type;
+
+		return static::get_item_model_from_db( $filter );
+	}
+
+	/**
+	 * Get a post model from database by filter.
+	 *
+	 * @param PostFilter $filter Post query filter.
+	 *
+	 * @return false|static Returns the model instance or false if not found.
+	 */
+	public static function get_item_model_from_db( $filter ) {
+		$post_db    = PostDB::getInstance();
+		$post_model = false;
+
+		try {
+			if ( empty( $filter->post_type ) ) {
+				$filter->post_type = ( new static() )->post_type;
+			}
+
+			$post_db->get_query_single_row( $filter );
+			$query_single_row = $post_db->get_posts( $filter );
+			$post_rs          = $post_db->wpdb->get_row( $query_single_row );
+
+			if ( $post_rs instanceof stdClass ) {
+				$post_model = new static( $post_rs );
+			}
+		} catch ( Throwable $e ) {
+			error_log( __METHOD__ . ': ' . $e->getMessage() );
 		}
 
-		$instance      = new static();
-		$expected_type = $instance->post_type;
-
-		if ( $check_type && $post->post_type !== $expected_type ) {
-			return false;
-		}
-
-		return new static( $post );
+		return $post_model;
 	}
 
 	/**

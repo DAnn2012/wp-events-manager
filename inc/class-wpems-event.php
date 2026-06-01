@@ -6,7 +6,7 @@
  * @package       WP-Events-Manager/Class
  * @version       2.1.7
  */
-use WPEMS\Models\EventPostModel;
+
 /**
  * Prevent loading this file directly
  */
@@ -14,66 +14,20 @@ defined( 'ABSPATH' ) || exit;
 
 class WPEMS_Event {
 
-	public $post     = null;
-	public $ID       = null;
-	private $model   = null;
-	static $instance = array();
+	public $post            = null;
+	public $ID              = null;
+	public static $instance = null;
 
 	public function __construct( $id = null ) {
-		if ( $id instanceof EventPostModel ) {
-			$this->model = $id;
-		} elseif ( is_numeric( $id ) && $id ) {
-			$this->model = EventPostModel::find( absint( $id ) );
+		if ( is_numeric( $id ) && $id && get_post_type( $id ) === 'tp_event' ) {
+			$this->post = get_post( $id );
 		} elseif ( $id instanceof WP_Post || is_object( $id ) ) {
 			$this->post = $id;
-
-			if ( ! empty( $id->ID ) && ( empty( $id->post_type ) || $id->post_type === 'tp_event' ) ) {
-				$this->model = new EventPostModel( $id );
-			}
 		}
 
-		if ( $this->model ) {
-			$this->ID   = $this->model->get_id();
-			$this->post = $this->post ? $this->post : $this->post_from_model( $this->model );
+		if ( $this->post ) {
+			$this->ID = $this->post->ID;
 		}
-	}
-
-	/**
-	 * Build a WP_Post-like object from the model data.
-	 *
-	 * @param EventPostModel $model Event model.
-	 *
-	 * @return WP_Post
-	 */
-	private function post_from_model( EventPostModel $model ) {
-		return new WP_Post(
-			(object) array(
-				'ID'                => $model->ID,
-				'post_author'       => $model->post_author,
-				'post_date'         => $model->post_date,
-				'post_date_gmt'     => $model->post_date_gmt,
-				'post_modified'     => $model->post_modified,
-				'post_modified_gmt' => $model->post_modified_gmt,
-				'post_content'      => $model->post_content,
-				'post_title'        => $model->post_title,
-				'post_excerpt'      => $model->post_excerpt,
-				'post_status'       => $model->post_status,
-				'post_password'     => $model->post_password,
-				'post_name'         => $model->post_name,
-				'post_type'         => $model->post_type,
-				'post_parent'       => $model->post_parent,
-				'filter'            => $model->filter,
-			)
-		);
-	}
-
-	/**
-	 * Get wrapped model.
-	 *
-	 * @return EventPostModel|null
-	 */
-	public function get_model() {
-		return $this->model;
 	}
 
 	/**
@@ -84,7 +38,13 @@ class WPEMS_Event {
 	 * @return mixed
 	 */
 	public function __get( $key = null ) {
-		return $this->model ? $this->model->get_meta( (string) $key ) : null;
+		$result = null;
+		switch ( $key ) {
+			default:
+				$result = get_post_meta( $this->ID, 'tp_event_' . $key, true );
+				break;
+		}
+		return $result;
 	}
 
 	/**
@@ -93,7 +53,7 @@ class WPEMS_Event {
 	 * @return string
 	 */
 	public function get_title() {
-		return $this->model ? $this->model->get_title() : '';
+		return get_the_title( $this->ID );
 	}
 
 	/**
@@ -102,7 +62,7 @@ class WPEMS_Event {
 	 * @return type boolean
 	 */
 	public function is_free() {
-		return $this->model ? $this->model->is_free() : true;
+		return ( ! $this->get_price() ) ? true : false;
 	}
 
 	/**
@@ -111,7 +71,7 @@ class WPEMS_Event {
 	 * @return type float
 	 */
 	public function get_price() {
-		return $this->model ? $this->model->get_price() : 0.0;
+		return floatval( $this->price );
 	}
 
 	/**
@@ -121,7 +81,28 @@ class WPEMS_Event {
 	 * @return array
 	 */
 	public function load_registered() {
-		return $this->model ? $this->model->load_registered() : array();
+		global $wpdb;
+		$query = $wpdb->prepare(
+			"
+				SELECT booked.* FROM $wpdb->posts AS booked
+					LEFT JOIN $wpdb->postmeta AS event ON event.post_id = booked.ID
+					LEFT JOIN $wpdb->postmeta AS book_quanity ON book_quanity.post_id = booked.ID
+					LEFT JOIN $wpdb->postmeta AS user_booked ON user_booked.post_id = booked.ID
+					LEFT JOIN $wpdb->users AS user ON user.ID = user_booked.meta_value
+				WHERE booked.post_type = %s
+					AND event.meta_key = %s
+					AND event.meta_value = %d
+					AND user_booked.meta_key = %s
+					AND book_quanity.meta_key = %s
+			",
+			'event_auth_book',
+			'ea_booking_event_id',
+			$this->ID,
+			'ea_booking_user_id',
+			'ea_booking_qty'
+		);
+
+		return $wpdb->get_results( $query );
 	}
 
 	/**
@@ -130,7 +111,7 @@ class WPEMS_Event {
 	 * @return type
 	 */
 	public function get_slot_available() {
-		return $this->model ? $this->model->get_slot_available() : 0;
+		return apply_filters( 'event_slot_available', (int) $this->qty - $this->booked_quantity() );
 	}
 
 	/**
@@ -139,7 +120,7 @@ class WPEMS_Event {
 	 * @return init
 	 */
 	public function get_registered_time() {
-		return $this->model ? $this->model->get_registered_time() : 0;
+		return apply_filters( 'event_registered_time', count( $this->load_registered() ) );
 	}
 
 	/**
@@ -152,7 +133,63 @@ class WPEMS_Event {
 	 * @return init
 	 */
 	public function booked_quantity( $user_id = null ) {
-		return $this->model ? $this->model->booked_quantity( is_null( $user_id ) ? null : absint( $user_id ) ) : 0;
+		global $wpdb;
+
+		if ( $user_id && is_numeric( $user_id ) ) {
+			$query = $wpdb->prepare(
+				"
+					SELECT SUM( pm.meta_value ) AS qty FROM $wpdb->postmeta AS pm
+						INNER JOIN $wpdb->posts AS book ON book.ID = pm.post_id
+						INNER JOIN $wpdb->postmeta AS pm2 ON pm2.post_id = book.ID
+						INNER JOIN $wpdb->postmeta AS pm3 ON pm3.post_id = book.ID
+						INNER JOIN $wpdb->posts AS event ON event.ID = pm3.meta_value
+						INNER JOIN $wpdb->users AS user ON user.ID = pm2.meta_value
+					WHERE
+						pm.meta_key = %s
+						AND book.post_type = %s
+						AND pm2.meta_key = %s
+						AND pm3.meta_key = %s
+						AND event.ID = %d
+						AND event.post_type = %s
+						AND user.ID = %d
+				",
+				'ea_booking_qty',
+				'event_auth_book',
+				'ea_booking_user_id',
+				'ea_booking_event_id',
+				$this->ID,
+				'tp_event',
+				$user_id
+			);
+		} else {
+			$query = $wpdb->prepare(
+				"
+					SELECT SUM( pm.meta_value ) AS qty FROM $wpdb->postmeta AS pm
+						INNER JOIN $wpdb->posts AS book ON book.ID = pm.post_id
+						INNER JOIN $wpdb->postmeta AS pm2 ON pm2.post_id = book.ID
+						INNER JOIN $wpdb->postmeta AS pm3 ON pm3.post_id = book.ID
+						INNER JOIN $wpdb->posts AS event ON event.ID = pm3.meta_value
+						INNER JOIN $wpdb->users AS user ON user.ID = pm2.meta_value
+					WHERE
+						pm.meta_key = %s
+						AND book.post_type = %s
+						AND book.post_status = %s
+						AND pm2.meta_key = %s
+						AND pm3.meta_key = %s
+						AND event.ID = %d
+						AND event.post_type = %s
+				",
+				'ea_booking_qty',
+				'event_auth_book',
+				'ea-completed',
+				'ea_booking_user_id',
+				'ea_booking_event_id',
+				$this->ID,
+				'tp_event'
+			);
+		}
+
+		return apply_filters( 'event_auth_booked_quanity', (int) $wpdb->get_var( $query ) );
 	}
 
 	/**
@@ -163,25 +200,20 @@ class WPEMS_Event {
 	 * @return type
 	 */
 	public static function instance( $id, $option = null ) {
-		if ( $id instanceof EventPostModel ) {
-			$event_id = $id->get_id();
-		} elseif ( is_numeric( $id ) ) {
-			$event_id = absint( $id );
+		$event_id = false;
+		if ( is_numeric( $id ) && $id && get_post_type( $id ) === 'tp_event' ) {
+			$post     = get_post( $id );
+			$event_id = $post->ID;
 		} elseif ( $id instanceof WP_Post || is_object( $id ) ) {
-			$event_id = ! empty( $id->ID ) ? absint( $id->ID ) : 0;
-		} else {
-			$event_id = 0;
+			$event_id = $id->ID;
 		}
 
-		if ( $event_id && ! empty( self::$instance[ $event_id ] ) ) {
+		if ( ! empty( self::$instance[ $event_id ] ) ) {
 			return self::$instance[ $event_id ];
 		}
 
-		$instance = new self( $id );
-		if ( $instance->ID ) {
-			self::$instance[ $instance->ID ] = $instance;
-		}
+		self::$instance[ $event_id ] = new self( $event_id );
 
-		return $instance;
+		return self::$instance[ $event_id ];
 	}
 }

@@ -3,21 +3,18 @@
  * Event query filter data object.
  *
  * @package WPEMS/Filters
+ * @version 1.0.1
+ * @since   2.3.0
  */
 
 namespace WPEMS\Filters;
 
 defined( 'ABSPATH' ) || exit;
 
-class EventFilter {
-
-	/**
-	 * Event ID.
-	 *
-	 * @var int
-	 */
-	public $ID = 0;
-
+/**
+ * Class EventFilter
+ */
+class EventFilter extends PostFilter {
 	/**
 	 * Post type.
 	 *
@@ -26,39 +23,25 @@ class EventFilter {
 	public $post_type = 'tp_event';
 
 	/**
-	 * Post status.
+	 * Event meta status.
 	 *
 	 * @var string
 	 */
 	public $status = '';
 
 	/**
-	 * Date range start.
+	 * Date range start (Y-m-d).
 	 *
 	 * @var string
 	 */
 	public $date_from = '';
 
 	/**
-	 * Date range end.
+	 * Date range end (Y-m-d).
 	 *
 	 * @var string
 	 */
 	public $date_to = '';
-
-	/**
-	 * Query limit.
-	 *
-	 * @var int
-	 */
-	public $limit = 10;
-
-	/**
-	 * Query offset.
-	 *
-	 * @var int
-	 */
-	public $offset = 0;
 
 	/**
 	 * Order by field.
@@ -73,4 +56,26 @@ class EventFilter {
 	 * @var string
 	 */
 	public $order = 'DESC';
+
+	/**
+	 * Event ID — used by booking-centric queries.
+	 *
+	 * @var int
+	 */
+	public $event_id = 0;
+
+	/**
+	 * User ID — optional scope for booking queries.
+	 *
+	 * @var int|null
+	 */
+	public $user_id = null;
+
+	/**
+	 * Booking post status scope. When non-empty, only bookings
+	 * with this status are included in aggregate queries.
+	 *
+	 * @var string
+	 */
+	public $booking_status = '';
 }

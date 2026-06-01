@@ -21,6 +21,11 @@ class WPEMS_Shortcodes {
 	 * Init shortcodes
 	 */
 	public static function init() {
+		if ( class_exists( '\WPEMS\ShortCodes\EventShortCodes' ) ) {
+			\WPEMS\ShortCodes\EventShortCodes::init();
+			return;
+		}
+
 		add_action( 'tp_event_shortcode_wrapper_start', array( __CLASS__, 'shortcode_wrapper_start' ) );
 		add_action( 'tp_event_shortcode_wrapper_end', array( __CLASS__, 'shortcode_wrapper_end' ) );
 
@@ -57,10 +62,13 @@ class WPEMS_Shortcodes {
 
 		$page_id = array();
 
-		if ( $register_id = wpems_get_page_id( 'register' ) ) {
+		$register_id = wpems_get_page_id( 'register' );
+		if ( $register_id ) {
 			$page_id[] = $register_id;
 		}
-		if ( $login_id = wpems_get_page_id( 'login' ) ) {
+
+		$login_id = wpems_get_page_id( 'login' );
+		if ( $login_id ) {
 			$page_id[] = $login_id;
 		}
 
