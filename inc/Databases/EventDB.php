@@ -245,6 +245,8 @@ class EventDB extends DataBase {
 
 		$filter->run_query_count = false;
 		$filter->limit           = -1;
+		$filter->order_by        = '';
+		$filter->order           = '';
 
 		$filter = apply_filters( 'wpems/event/booked_quantity/filter', $filter );
 
