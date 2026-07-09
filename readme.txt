@@ -3,7 +3,7 @@ Contributors: thimpress, leehld, phamtungpth
 Donate link: https://thimpress.com/
 Tags: event, event management, events, registration, bookings
 Tested up to: 6.8
-Stable tag: 2.2.3
+Stable tag: 2.2.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,7 @@ To stay in touch and update about FundPress's future releases and features, you 
 == Changelog ==
 
 = 2.2.4 (2025-10-27) =
+~ Fixed: validate event booking quantity before creating bookings.
 ~ Fixed: minor bugs.
 
 = 2.2.3 (2025-10-10) =

@@ -272,6 +272,19 @@ abstract class TestCase extends PHPUnitTestCase {
 			}
 
 			/**
+			 * Get result rows.
+			 *
+			 * @param string $query SQL query.
+			 *
+			 * @return array
+			 */
+			public function get_results( string $query ): array {
+				$this->last_query = $query;
+
+				return array( (object) array( 'qty' => $this->get_var( $query ) ) );
+			}
+
+			/**
 			 * Get a scalar value.
 			 *
 			 * @param string $query SQL query.

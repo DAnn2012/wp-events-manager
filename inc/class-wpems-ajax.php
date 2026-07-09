@@ -207,26 +207,26 @@ class WPEMS_Ajax {
 					throw new Exception( $booking_id->get_error_message() );
 				} elseif ( $args['price'] == 0 ) {
 						// update booking status
-						$book = BookingPostModel::find( $booking_id );
+					$book = BookingPostModel::find( $booking_id );
 					if ( ! $book ) {
 						throw new Exception( __( 'Booking ID is not exists!', 'wp-events-manager' ) );
 					}
 
-						$book->update_status();
+					$book->update_status();
 
-						// user booking
-						$user       = get_userdata( $book->get_user_id() );
-						$user_email = $user && ! empty( $user->user_email ) ? $user->user_email : '';
-						wpems_add_notice( 'success', sprintf( __( 'Book ID <strong>%1$s</strong> completed! We\'ll send mail to <strong>%2$s</strong> when it is approve.', 'wp-events-manager' ), wpems_format_ID( $booking_id ), $user_email ) );
-						wp_send_json(
-							apply_filters(
-								'event_auth_register_ajax_result',
-								array(
-									'status' => true,
-									'url'    => wpems_account_url(),
-								)
+					// user booking
+					$user       = get_userdata( $book->get_user_id() );
+					$user_email = $user && ! empty( $user->user_email ) ? $user->user_email : '';
+					wpems_add_notice( 'success', sprintf( __( 'Book ID <strong>%1$s</strong> completed! We\'ll send mail to <strong>%2$s</strong> when it is approve.', 'wp-events-manager' ), wpems_format_ID( $booking_id ), $user_email ) );
+					wp_send_json(
+						apply_filters(
+							'event_auth_register_ajax_result',
+							array(
+								'status' => true,
+								'url'    => wpems_account_url(),
 							)
-						);
+						)
+					);
 				} elseif ( $payment ) {
 
 					$return = $payment->process( $booking_id );
