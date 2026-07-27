@@ -77,6 +77,10 @@ To stay in touch and update about FundPress's future releases and features, you 
 
 == Changelog ==
 
+= 2.2.5 (2026-07-27) =
+~ Fixed: security.
+~ Fixed: some bugs.
+
 = 2.2.4 (2025-10-27) =
 ~ Fixed: validate event booking quantity before creating bookings.
 ~ Fixed: minor bugs.
