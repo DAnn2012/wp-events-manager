@@ -10,14 +10,15 @@
 /**
  * Prevent loading this file directly
  */
+
+use WPEMS\Widgets\WidgetCountdown;
+
 defined( 'ABSPATH' ) || exit;
 
-add_action( 'widgets_init', 'wpems_register_countdown_widget' );
-if ( ! function_exists( 'wpems_register_countdown_widget' ) ) {
-
-	function wpems_register_countdown_widget() {
-		register_widget( 'WPEMS_Widget_Countdown' );
-	}
+add_action( 'widgets_init', 'register_widgets' );
+function register_widgets() {
+	//register_widget( 'WPEMS_Widget_Countdown' );
+	register_widget( WidgetCountdown::class );
 }
 
 if ( ! function_exists( 'wpems_clean_relative_template_path' ) ) {
@@ -151,7 +152,11 @@ if ( ! function_exists( 'wpems_get_template' ) ) {
 
 	function wpems_get_template( $template_name, $args = array(), $template_path = '', $default_path = '' ) {
 		if ( $args && is_array( $args ) ) {
-			extract( $args, EXTR_SKIP );
+			// extract args
+			foreach ( $args as $key => $value ) {
+				$$key = $value;
+			}
+			unset( $key, $value ); // clean up
 		}
 
 		$located = wpems_locate_template( $template_name, $template_path, $default_path );

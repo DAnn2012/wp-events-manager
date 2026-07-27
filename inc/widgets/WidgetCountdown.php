@@ -1,43 +1,24 @@
 <?php
-/**
- * WP Events Manager Event Countdown widget
- *
- * @author        ThimPress, leehld
- * @package       WP-Events-Manager/Widget
- * @version       2.1.7
- */
 
-/**
- * Prevent loading this file directly
- */
+namespace WPEMS\Widgets;
+
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Adds Foo_Widget widget.
- */
-class WPEMS_Widget_Countdown extends WP_Widget {
+require_once __DIR__ . '/WidgetBase.php';
 
-	/**
-	 * Register widget with WordPress.
-	 */
-	function __construct() {
-		parent::__construct(
-			'wpems_widget_countdown', // Base ID
-			__( 'WP Event Countdown', 'wp-events-manager' ), // Name
-			array( 'description' => __( 'Countdown timer for event', 'wp-events-manager' ) ) // Args
-		);
+class WidgetCountdown extends WidgetBase {
+	protected $wpems_widget_id = 'widget_countdown';
+
+	public function __construct() {
+		$this->wpems_widget_name        = __( 'WP Event Countdown', 'wp-events-manager' );
+		$this->wpems_widget_description = __( 'Countdown timer for event', 'wp-events-manager' );
+
+		parent::__construct();
 	}
 
-	/**
-	 * Front-end display of widget.
-	 *
-	 * @see WP_Widget::widget()
-	 *
-	 * @param array $args     Widget arguments.
-	 * @param array $instance Saved values from database.
-	 */
 	public function widget( $args, $instance ) {
 		echo wp_kses_post( $args['before_widget'] );
+
 		if ( ! empty( $instance['title'] ) ) {
 			echo wp_kses_post( $args['before_title'] . apply_filters( 'widget_title', $instance['title'] ) . $args['after_title'] );
 		}
@@ -47,32 +28,23 @@ class WPEMS_Widget_Countdown extends WP_Widget {
 		$html   = array();
 		$html[] = '[wp_event_countdown';
 
+		$data_send = [];
+		$event_ids = [];
 		foreach ( $instance as $key => $value ) {
-			if ( strpos( $key, 'wp_' ) !== 0 ) {
-				continue;
-			}
-
-			$key = sanitize_key( substr( $key, 3 ) );
-
-			if ( $key == 'events' ) {
-				$value  = array_map( 'absint', array_values( (array) $value ) );
-				$html[] = ' event_id="' . implode( ',', $value ) . '"';
+			if ( $key === 'wp_events' ) {
+				$event_ids = $value;
 			} else {
-				$html[] = $key . '="' . esc_attr( sanitize_text_field( $value ) ) . '"';
+				$data_send[ $key ] = $value;
 			}
 		}
-		$html[] = ']';
-		echo do_shortcode( implode( ' ', $html ) );
+
+		$data_send['event_id'] = implode( ',', $event_ids );
+
+		wpems_get_template( 'shortcodes/event-countdown.php', [ 'args' => $data_send ] );
+		//echo do_shortcode( implode( ' ', $html ) );
 		echo wp_kses_post( $args['after_widget'] );
 	}
 
-	/**
-	 * Back-end widget form.
-	 *
-	 * @see WP_Widget::form()
-	 *
-	 * @param array $instance Previously saved values from database.
-	 */
 	public function form( $instance ) {
 		$title      = ! empty( $instance['title'] ) ? $instance['title'] : '';
 		$selected   = ! empty( $instance['wp_events'] ) ? $instance['wp_events'] : array();
@@ -103,27 +75,14 @@ class WPEMS_Widget_Countdown extends WP_Widget {
 		<?php
 	}
 
-	/**
-	 * Sanitize widget form values as they are saved.
-	 *
-	 * @see WP_Widget::update()
-	 *
-	 * @param array $new_instance Values just sent to be saved.
-	 * @param array $old_instance Previously saved values from database.
-	 *
-	 * @return array Updated safe values to be saved.
-	 */
 	public function update( $new_instance, $old_instance ) {
-		$instance          = array();
-		$instance['title'] = ( ! empty( $new_instance['title'] ) ) ? sanitize_text_field( $new_instance['title'] ) : '';
-
-		$instance['wp_events'] = isset( $new_instance['wp_events'] ) ? array_map( 'absint', (array) $new_instance['wp_events'] ) : array();
-
-		$instance['wp_slide'] = isset( $new_instance['wp_slide'] ) && 'true' === $new_instance['wp_slide'] ? 'true' : false;
-
+		$instance                  = array();
+		$instance['title']         = ! empty( $new_instance['title'] ) ? sanitize_text_field( $new_instance['title'] ) : '';
+		$instance['wp_events']     = isset( $new_instance['wp_events'] ) ? array_map( 'absint', (array) $new_instance['wp_events'] ) : array();
+		$instance['wp_slide']      = isset( $new_instance['wp_slide'] ) && 'true' === $new_instance['wp_slide'] ? 'true' : false;
 		$instance['wp_navigation'] = isset( $new_instance['wp_navigation'] ) && 'true' === $new_instance['wp_navigation'] ? 'true' : false;
-
 		$instance['wp_pagination'] = isset( $new_instance['wp_pagination'] ) && 'true' === $new_instance['wp_pagination'] ? 'true' : false;
+
 		return $instance;
 	}
 
@@ -134,63 +93,56 @@ class WPEMS_Widget_Countdown extends WP_Widget {
 			'expired'   => __( 'Expired', 'wp-events-manager' ),
 		);
 		$selected = array_map( 'intval', $selected );
-
-		$status = apply_filters( 'tp_event_widget_countdown', $status );
-		$i      = 0;
+		$status   = apply_filters( 'tp_event_widget_countdown', $status );
+		$i        = 0;
 		?>
 		<ul class="tp_event_widget_tab">
 			<?php foreach ( $status as $key => $label ) : ?>
-
 				<li>
-					<a href="#" data-tab="<?php echo esc_attr( $key ); ?>" class="button<?php echo ( $i === 0 ) ? esc_attr( ' button-primary' ) : ''; ?>">
+					<a href="#" data-tab="<?php echo esc_attr( $key ); ?>" class="button<?php echo 0 === $i ? esc_attr( ' button-primary' ) : ''; ?>">
 						<?php echo esc_html( $label ); ?>
 					</a>
 				</li>
 				<?php ++$i; ?>
 			<?php endforeach; ?>
 		</ul>
-		<?php $i = 0; ?>
 		<?php
+		$i = 0;
+
 		foreach ( $status as $stt => $label ) {
-			$args = array(
-				'post_type'      => 'tp_event',
-				'posts_per_page' => - 1,
-				'meta_query'     => array(
-					array(
-						'key'   => 'tp_event_status',
-						'value' => $stt,
+			$results = new \WP_Query(
+				array(
+					'post_type'      => 'tp_event',
+					'posts_per_page' => -1,
+					'meta_query'     => array(
+						array(
+							'key'   => 'tp_event_status',
+							'value' => $stt,
+						),
 					),
-				),
+				)
 			);
 
-			$results = new WP_Query( $args );
-			if ( $results->have_posts() ) :
-				?>
-
-				<div class="tp_event_admin_widget<?php echo ( $i === 0 ) ? esc_attr( ' active' ) : ''; ?>" data-status="<?php echo esc_attr( $stt ); ?>">
-					<ul>
-						<?php
-						while ( $results->have_posts() ) :
-							$results->the_post();
-							?>
-
-							<li>
-								<p>
-									<input id="<?php echo esc_attr( $this->id . '-' . get_the_ID() ); ?>" type="checkbox" name="<?php echo esc_attr( $this->get_field_name( 'wp_events' ) ); ?>[]" value="<?php echo esc_attr( get_the_ID() ); ?>" <?php checked( in_array( get_the_ID(), $selected, true ) ); ?>/>
-									<label for="<?php echo esc_attr( $this->id . '-' . get_the_ID() ); ?>"><?php echo esc_html( get_the_title() ); ?></label>
-								</p>
-							</li>
-
-							<?php
-						endwhile;
-						wp_reset_postdata();
-						?>
-					</ul>
-				</div>
-
-				<?php
-				++$i;
-			endif;
+			if ( ! $results->have_posts() ) {
+				continue;
+			}
+			?>
+			<div class="tp_event_admin_widget<?php echo 0 === $i ? esc_attr( ' active' ) : ''; ?>" data-status="<?php echo esc_attr( $stt ); ?>">
+				<ul>
+					<?php while ( $results->have_posts() ) : ?>
+						<?php $results->the_post(); ?>
+						<li>
+							<p>
+								<input id="<?php echo esc_attr( $this->id . '-' . get_the_ID() ); ?>" type="checkbox" name="<?php echo esc_attr( $this->get_field_name( 'wp_events' ) ); ?>[]" value="<?php echo esc_attr( get_the_ID() ); ?>" <?php checked( in_array( get_the_ID(), $selected, true ) ); ?>>
+								<label for="<?php echo esc_attr( $this->id . '-' . get_the_ID() ); ?>"><?php echo esc_html( get_the_title() ); ?></label>
+							</p>
+						</li>
+					<?php endwhile; ?>
+				</ul>
+			</div>
+			<?php
+			wp_reset_postdata();
+			++$i;
 		}
 	}
 }

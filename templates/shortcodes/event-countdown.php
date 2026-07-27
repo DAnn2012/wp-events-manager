@@ -14,19 +14,19 @@
  */
 defined( 'ABSPATH' ) || exit();
 
-if ( ! isset($args) ) {
-    return;
+if ( ! isset( $args ) ) {
+	return;
 }
 
 $event_id = $args['event_id'] ?? '';
 
-if ( empty( $event_id ) ) {
+if ( ! empty( $event_id ) ) {
 	$ids = explode( ',', $event_id );
 	foreach ( $ids as $id ) {
-		$id    = absint( $id );
-        if ( $id <= 0 ) {
-            continue;
-        }
+		$id = absint( $id );
+		if ( $id <= 0 ) {
+			continue;
+		}
 
 		$event = get_post( $id );
 		if ( ! $event ) {
