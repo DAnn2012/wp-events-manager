@@ -18,6 +18,8 @@ use Throwable;
 use WPEMS\Databases\PostDB;
 use WPEMS\Filters\PostFilter;
 use WP_Post;
+use WP_Error;
+use WP_Term;
 
 defined( 'ABSPATH' ) || exit();
 
@@ -142,6 +144,23 @@ class PostModel {
 	}
 
 	/**
+	 * Get user model of the post author.
+	 *
+	 * @return false|UserModel
+	 * @since 1.0.0
+	 * @version 1.0.0
+	 */
+	public function get_author_model() {
+		if ( ! empty( $this->post_author ) ) {
+			$author_id = $this->post_author;
+		} else {
+			$author_id = get_post_field( 'post_author', $this );
+		}
+
+		return UserModel::find( $author_id );
+	}
+
+	/**
 	 * Map array or object data to this model.
 	 *
 	 * @param array|object|mixed $data Data from database or WP_Post.
@@ -188,7 +207,7 @@ class PostModel {
 	 *
 	 * @return false|static Returns the model instance or false if not found.
 	 */
-	public static function get_item_model_from_db( $filter ) {
+	public static function get_item_model_from_db( PostFilter $filter ) {
 		$post_db    = PostDB::getInstance();
 		$post_model = false;
 
@@ -456,6 +475,24 @@ class PostModel {
 	 */
 	public function get_the_title(): string {
 		return get_the_title( $this->ID );
+	}
+
+	/**
+	 * Get categories of course.
+	 *
+	 * @return array|WP_Term[]
+	 * @version 1.0.0
+	 * @since 1.0.0
+	 */
+	public function get_terms( string $taxonomy ): array {
+		// Todo: set cache.
+		$wpPost = new WP_Post( $this );
+		$terms  = get_the_terms( $wpPost, $taxonomy );
+		if ( ! $terms || $terms instanceof WP_Error ) {
+			$terms = array();
+		}
+
+		return $terms;
 	}
 
 	/**

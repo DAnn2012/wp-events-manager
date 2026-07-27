@@ -21,8 +21,7 @@ buildJS.on('exit', () => {
 buildJS.on('spawn', () => {
 	// Run command: npm run build-makepot-zip
 	const releaseProcess = spawn('npm', ['run', 'build-makepot-zip'], {
-		stdio: 'inherit',
-		shell: true
+		stdio: 'inherit'
 	});
 
 	releaseProcess.on('exit', (code) => {

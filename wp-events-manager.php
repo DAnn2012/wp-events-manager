@@ -49,25 +49,17 @@ if ( ! class_exists( 'WPEMS' ) ) {
 			}
 		}
 
-		/**
-		 * Define Plugins Constants
-		 */
-		public function define_constants() {
-			$this->set_define( 'WPEMS_PATH', plugin_dir_path( __FILE__ ) );
-			$this->set_define( 'WPEMS_URI', plugin_dir_url( __FILE__ ) );
-			$this->set_define( 'WPEMS_INC', WPEMS_PATH . 'inc/' );
-			$this->set_define( 'WPEMS_INC_URI', WPEMS_URI . 'inc/' );
-			$this->set_define( 'WPEMS_ASSETS_URI', WPEMS_URI . 'assets/' );
-			$this->set_define( 'WPEMS_LIB_URI', WPEMS_INC_URI . 'libraries/' );
-			$this->set_define( 'WPEMS_VER', '2.1.8' );
-			$this->set_define( 'WPEMS_MAIN_FILE', __FILE__ );
-		}
-
-		public function set_define( $name = '', $value = '' ) {
-			if ( $name && ! defined( $name ) ) {
-				define( $name, $value );
-			}
-		}
+        public function define_constants() {
+            define( 'WPEMS_MAIN_FILE', __FILE__ );
+            define( 'WPEMS_PATH', plugin_dir_path( WPEMS_MAIN_FILE ) );
+            define( 'WPEMS_URI', plugin_dir_url( WPEMS_MAIN_FILE ) );
+            define( 'WPEMS_PLUGIN_BASE', plugin_basename( WPEMS_MAIN_FILE ) );
+            define( 'WPEMS_INC', WPEMS_PATH . 'inc/' );
+            define( 'WPEMS_INC_URI', WPEMS_URI . 'inc/' );
+            define( 'WPEMS_ASSETS_URI', WPEMS_URI . 'assets/' );
+            define( 'WPEMS_LIB_URI', WPEMS_INC_URI . 'libraries/' );
+            define( 'WPEMS_VER', '2.1.8' );
+        }
 
 		/**
 		 * Init hooks plugins
